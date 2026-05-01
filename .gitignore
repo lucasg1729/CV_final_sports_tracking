@@ -1,0 +1,44 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Datasets (large, license-restricted, downloaded separately) ---
+# SportsMOT is ~33 GB and cannot be redistributed.
+# Each user downloads it themselves; see README for instructions.
+data/
+
+# --- Model weights (downloaded on first run, not redistributed) ---
+*.pt
+*.pth
+*.onnx
+*.weights
+yolov8*.pt
+
+# --- Local config overrides (e.g. user-specific data paths) ---
+configs/local.yaml
+.env
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.tar.gz
+
+# --- NOTE ---
+# We intentionally do NOT ignore:
+#   cache/detections/   - cached YOLO outputs (small, enables reproduction without GPU)
+#   results/            - tracking output files (small, these are our results)
+#   configs/*.yaml      - experiment configs (except local.yaml above)
