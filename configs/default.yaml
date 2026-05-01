@@ -1,0 +1,30 @@
+# Project-wide configuration.
+#
+# To override any of these on your local machine, copy this file to
+# configs/local.yaml and edit. local.yaml is gitignored, so per-user
+# paths never end up in the repo.
+
+# Path to the directory that contains train/, val/, test/ subdirectories
+# in MOT Challenge 17 format.
+#
+# SportsMOT's archive extracts to sportsmot_publish/dataset/{train,val,test}/,
+# which is why this path goes that deep. If you have it somewhere else,
+# override in local.yaml.
+sportsmot_root: data/sportsmot_publish/dataset
+
+# Path to the directory that contains the per-sport split files
+# (basketball.txt, football.txt, volleyball.txt). These are shipped with
+# SportsMOT under sportsmot_publish/splits_txt/.
+splits_dir: data/sportsmot_publish/splits_txt
+
+# Which split to use for development and evaluation.
+split: val
+
+# Which sport to filter to. Options: basketball, football, volleyball, or
+# 'all' to use every clip in the split. Our project focuses on basketball
+# because of its dense occlusions and (often) stationary cameras.
+sport: basketball
+
+# YOLO model weights file (downloaded automatically by ultralytics on
+# first use). nano is fastest, x is most accurate.
+yolo_model: yolov8n.pt
