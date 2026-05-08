@@ -1,4 +1,4 @@
-"""Run the MOT I/O checks without needing pytest."""
+"""Run the MOT I/O checks without needing pytest"""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory() as tmp:
     print("Sorting and edge cases")
     print("-" * 60)
 
-    # Unsorted input.
+    # Unsorted input
     rows = [
         MotRow(frame=2, track_id=1, x1=0, y1=0, x2=10, y2=10, confidence=1.0),
         MotRow(frame=1, track_id=2, x1=0, y1=0, x2=10, y2=10, confidence=1.0),
@@ -72,7 +72,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"got {[(r.frame, r.track_id) for r in loaded]}",
     )
 
-    # SportsMOT-style row with extra columns.
+    # SportsMOT-style row with extra columns
     path = tmp_path / "gt.txt"
     path.write_text("1,1,10.0,20.0,50.0,100.0,1,1,1.0\n")
     loaded = read_mot_file(path)
@@ -88,13 +88,13 @@ with tempfile.TemporaryDirectory() as tmp:
         and approx(r.y2, 120.0),
     )
 
-    # Blank lines and comments.
+    # Blank lines and comments
     path = tmp_path / "comments.txt"
     path.write_text("# comment\n1,1,10,20,50,100,1.0,-1,-1,-1\n\n2,1,15,25,50,100,1.0,-1,-1,-1\n")
     loaded = read_mot_file(path)
     check("blank lines and comments skipped", len(loaded) == 2)
 
-    # Malformed row should raise.
+    # Malformed row should raise
     path = tmp_path / "bad.txt"
     path.write_text("1,2,3\n")
     raised = False
@@ -104,21 +104,21 @@ with tempfile.TemporaryDirectory() as tmp:
         raised = True
     check("malformed row raises ValueError", raised)
 
-    # Parent directory creation.
+    # Parent directory creation
     nested = tmp_path / "a" / "b" / "c.txt"
     write_mot_file(
         nested, [MotRow(frame=1, track_id=1, x1=0, y1=0, x2=1, y2=1, confidence=1.0)]
     )
     check("write_mot_file creates parent directories", nested.exists())
 
-    # Empty file.
+    # Empty file
     path = tmp_path / "empty.txt"
     write_mot_file(path, [])
     check("empty input: file exists", path.exists())
     check("empty input: file is empty", path.read_text() == "")
     check("empty input: read returns empty list", read_mot_file(path) == [])
 
-    # Grouping helper.
+    # Grouping helper
     rows = [
         MotRow(frame=1, track_id=1, x1=0, y1=0, x2=1, y2=1, confidence=1.0),
         MotRow(frame=1, track_id=2, x1=0, y1=0, x2=1, y2=1, confidence=1.0),

@@ -1,9 +1,8 @@
-"""Pytest-free end-to-end check of the tracking runner.
+"""Pytest-free end-to-end check of the tracking runner
 
 Builds a synthetic SportsMOT-style fixture and runs the tracker through
 scripts.run_tracker.run_clip. Verifies that output files are well-formed
-and that the runner correctly iterates ALL frames (not just frames with
-detections), which is essential for correct track aging.
+and that the runner correctly iterates all frames
 """
 
 from __future__ import annotations
@@ -14,14 +13,14 @@ from pathlib import Path
 
 import numpy as np
 
-# Make package + scripts importable.
+# Make package and scripts importable
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from sports_tracker.detector import FrameDetections, save_detections
 from sports_tracker.mot_io import read_mot_file
-from run_tracker import run_clip  # type: ignore
+from run_tracker import run_clip 
 
 
 def check(name, condition, detail=""):

@@ -1,9 +1,8 @@
 """Unit tests for the detector module.
 
-These cover the parts that don't require running YOLO itself:
-  - FrameDetections.filter
-  - save_detections / load_detections round-trip
-  - load_detections's confidence threshold and dense-mode behavior
+These cover the parts that don't require running YOLO itself 
+(FrameDetections.filter, save_detections / load_detections round-trip,
+load_detections's confidence threshold and dense-mode behavior)
 
 The actual YoloDetector class needs PyTorch + downloaded weights, so
 its real-inference behavior is verified by running the runner script
@@ -24,7 +23,7 @@ from sports_tracker.detector import (
 )
 
 
-# --- FrameDetections --------------------------------------------------------
+# FrameDetections
 
 
 def test_frame_detections_filter():
@@ -64,7 +63,7 @@ def test_filter_returns_empty_when_all_below_threshold():
     assert out.scores.shape == (0,)
 
 
-# --- Cache I/O --------------------------------------------------------------
+# Cache I/O
 
 
 def test_cache_roundtrip_basic(tmp_path: Path):
@@ -93,12 +92,12 @@ def test_cache_roundtrip_basic(tmp_path: Path):
     assert meta_out == meta_in
     assert len(loaded) == 2
 
-    # Frame 1: two boxes.
+    # Frame 1: two boxes
     assert loaded[0].frame_idx == 1
     np.testing.assert_array_equal(loaded[0].boxes, frame_dets[0].boxes)
     np.testing.assert_array_equal(loaded[0].scores, frame_dets[0].scores)
 
-    # Frame 2: one box.
+    # Frame 2: one box
     assert loaded[1].frame_idx == 2
     np.testing.assert_array_equal(loaded[1].boxes, frame_dets[1].boxes)
 
@@ -139,12 +138,12 @@ def test_cache_roundtrip_some_empty_frames(tmp_path: Path):
     save_detections(cache_path, frame_dets, {})
 
     loaded, _ = load_detections(cache_path)
-    # Sparse mode: empty frame 2 isn't returned.
+    # Sparse mode: empty frame 2 isn't returned
     assert [fd.frame_idx for fd in loaded] == [1, 3]
 
 
 def test_cache_dense_mode_fills_missing_frames(tmp_path: Path):
-    """Dense mode (n_frames=N) returns one entry per frame from 1..N,
+    """Dense mode (n_frames=N) returns one entry per frame from 1...N,
     with empty FrameDetections for frames that had nothing.
     """
     frame_dets = [
@@ -171,7 +170,7 @@ def test_cache_dense_mode_fills_missing_frames(tmp_path: Path):
 
 
 def test_cache_load_applies_min_conf(tmp_path: Path):
-    """Loading with min_conf > 0 should drop low-confidence detections."""
+    """Loading with min_conf > 0 should drop low-confidence detections"""
     frame_dets = [
         FrameDetections(
             frame_idx=1,
@@ -194,7 +193,7 @@ def test_cache_load_applies_min_conf(tmp_path: Path):
 
 
 def test_cache_load_min_conf_can_empty_a_frame(tmp_path: Path):
-    """Sparse mode skips frames whose detections all get filtered out."""
+    """Sparse mode skips frames whose detections all get filtered out"""
     frame_dets = [
         FrameDetections(
             frame_idx=1,
@@ -215,7 +214,7 @@ def test_cache_load_min_conf_can_empty_a_frame(tmp_path: Path):
 
 
 def test_cache_save_sorts_unsorted_input(tmp_path: Path):
-    """save_detections should sort frames by index even if given out of order."""
+    """save_detections should sort frames by index even if given out of order"""
     frame_dets = [
         FrameDetections(
             frame_idx=3,

@@ -1,4 +1,4 @@
-"""The SORT tracker.
+"""The SORT tracker
 
 Wires the Kalman filter and the IOU+Hungarian association module into
 a complete multi-object tracker, following Bewley et al. 2016.
@@ -6,16 +6,16 @@ a complete multi-object tracker, following Bewley et al. 2016.
 A Tracker holds a list of Track objects, where each Track wraps a
 Kalman filter and a unique integer ID. Each frame, the tracker:
 
-  1. Predicts every track's position one frame forward.
-  2. Associates new detections to predicted tracks via IOU + Hungarian.
-  3. Updates matched tracks with their assigned detection.
+  1. Predicts every track's position one frame forward
+  2. Associates new detections to predicted tracks via IOU + Hungarian
+  3. Updates matched tracks with their assigned detection
   4. Increments time-since-update on unmatched tracks; deletes any that
-     have been unmatched for more than `max_age` frames.
-  5. Creates a new tentative track for each unmatched detection.
+     have been unmatched for more than `max_age` frames
+  5. Creates a new tentative track for each unmatched detection
 
-Track lifecycle: a track is *tentative* until it has accumulated
-`min_hits` consecutive successful updates, at which point it becomes
-*confirmed*. Only confirmed tracks are reported in the per-frame
+Track lifecycle: a track is tentative until it has accumulated
+min_hits consecutive successful updates, at which point it becomes
+confirmed. Only confirmed tracks are reported in the per-frame
 output, which prevents transient detector noise from generating short
 ghost tracks.
 
@@ -29,14 +29,10 @@ Parameters and their relationship to SORT defaults:
   max_age   SORT default: 1. We default to 30 (about 1 second at 30 fps),
             which is much more permissive. The article review for this
             project identified max_age=1 as poorly suited to sports
-            where brief occlusions are constant. This is the first
-            obvious ablation knob.
+            where brief occlusions are constant.
   min_hits  SORT default: 3. We use the same. Probably not worth changing
             unless the detector is very noisy.
   iou_thr   SORT default: 0.3. Tunable here for ablation.
-
-References:
-    Bewley et al., "Simple Online and Realtime Tracking", ICIP 2016.
 """
 
 from __future__ import annotations
@@ -52,22 +48,22 @@ from sports_tracker.kalman import BoxKalmanFilter
 
 # Defaults differ from SORT's reference values (max_age=1, min_hits=3)
 # because the SORT defaults are tuned for pedestrian sequences. We
-# loosen max_age substantially for sports.
+# loosen max_age substantially for sports
 DEFAULT_MAX_AGE = 30
 DEFAULT_MIN_HITS = 3
 
 
 @dataclass
 class Track:
-    """A single tracked object: a Kalman filter plus identity bookkeeping.
+    """A single tracked object: a Kalman filter plus identity bookkeeping
 
     Attributes:
-        id: A globally unique positive integer assigned at creation time.
-        kf: The Kalman filter holding this track's state.
-        hits: Total number of successful updates over this track's life.
+        id: A globally unique positive integer assigned at creation time
+        kf: The Kalman filter holding this track's state
+        hits: Total number of successful updates over this track's life
         confirmed: Whether the track has crossed the min_hits threshold
             and is being reported in output. Once confirmed, a track
-            stays confirmed until it's deleted.
+            stays confirmed until it's deleted
     """
 
     id: int
@@ -98,15 +94,15 @@ class Track:
 
 @dataclass
 class TrackOutput:
-    """One row of output from the tracker for a given frame.
+    """One row of output from the tracker for a given frame
 
     Attributes:
-        id: The track's unique ID.
-        bbox: Current bounding box estimate as [x1, y1, x2, y2].
+        id: The track's unique ID
+        bbox: Current bounding box estimate as [x1, y1, x2, y2]
         time_since_update: 0 if this track was matched this frame, otherwise
             the number of frames since the last successful match. Useful
             for downstream code that wants to filter out tracks that are
-            being predicted-only (no detection support).
+            being predicted-only (no detection support)
     """
 
     id: int
@@ -115,7 +111,7 @@ class TrackOutput:
 
 
 class Tracker:
-    """A SORT-style multi-object tracker."""
+    """A SORT-style multi-object tracker"""
 
     def __init__(
         self,
@@ -123,17 +119,17 @@ class Tracker:
         min_hits: int = DEFAULT_MIN_HITS,
         iou_threshold: float = DEFAULT_IOU_THRESHOLD,
     ):
-        """Initialize an empty tracker.
+        """Initialize an empty tracker
 
         Args:
             max_age: Delete a track after this many consecutive frames
                 without a matching detection. Higher values tolerate
                 longer occlusions but increase the chance of identity
-                drift onto a different object.
+                drift onto a different object
             min_hits: A new track must accumulate this many consecutive
-                successful updates before it appears in output.
+                successful updates before it appears in output
             iou_threshold: Detection-to-track pairs with IOU below this
-                are not matched (handed off to spawn/delete logic).
+                are not matched (handed off to spawn/delete logic)
         """
         if max_age < 1:
             raise ValueError(f"max_age must be >= 1, got {max_age}")
@@ -145,7 +141,7 @@ class Tracker:
         self.iou_threshold = iou_threshold
 
         self.tracks: List[Track] = []
-        self._next_id = 1  # Track IDs start at 1; 0 is reserved for "no track".
+        self._next_id = 1  # Track IDs start at 1; 0 is reserved for "no track"
         self._frame_count = 0
 
     def _new_id(self) -> int:
@@ -154,61 +150,56 @@ class Tracker:
         return i
 
     def step(self, detections: np.ndarray) -> List[TrackOutput]:
-        """Process one frame of detections and return the active tracks.
+        """Process one frame of detections and return the active tracks
 
         Args:
             detections: shape (M, 4) array of detection boxes [x1, y1, x2, y2].
-                May be empty (shape (0, 4)) if the detector found nothing.
+                May be empty (shape (0, 4)) if the detector found nothing
 
         Returns:
             A list of TrackOutput for every track that should be reported
             this frame. A track is reported if either:
               - it was matched this frame and has crossed min_hits, OR
               - it was already confirmed previously and is still alive
-                (i.e., within its grace period).
-            New tentative tracks (just created, hits < min_hits) are NOT
-            reported -- they're held back until they prove themselves.
+                (i.e., within its grace period)
+            New tentative tracks (just created, hits < min_hits) are not
+            reported
         """
         self._frame_count += 1
         detections = np.asarray(detections, dtype=np.float64).reshape(-1, 4)
 
-        # 1. Predict every existing track forward by one frame.
+        # 1. Predict every existing track forward by one frame
         predicted_boxes = np.array(
             [t.predict() for t in self.tracks], dtype=np.float64
         ).reshape(-1, 4)
 
-        # Sanity check: any track whose predicted box has NaN values is
-        # broken (numerical instability in the Kalman filter). Drop it
-        # before association rather than poisoning the IOU matrix.
+        # Any track whose predicted box has NaN values is broken
+        # Drop it before association rather than poisoning the IOU matrix
         valid_mask = np.all(np.isfinite(predicted_boxes), axis=1) if len(predicted_boxes) else np.array([], dtype=bool)
         if len(predicted_boxes) and not valid_mask.all():
             self.tracks = [t for t, ok in zip(self.tracks, valid_mask) if ok]
             predicted_boxes = predicted_boxes[valid_mask]
 
-        # 2. Associate detections to tracks.
+        # 2. Associate detections to tracks
         result = associate(
             predicted_boxes, detections, iou_threshold=self.iou_threshold
         )
 
-        # 3. Update matched tracks.
+        # 3. Update matched tracks
         for track_idx, det_idx in result.matches:
             self.tracks[track_idx].update(detections[det_idx])
 
-        # 4. Spawn new tracks for unmatched detections.
+        # 4. Spawn new tracks for unmatched detections
         for det_idx in result.unmatched_detections:
             kf = BoxKalmanFilter(detections[det_idx])
             self.tracks.append(Track(id=self._new_id(), kf=kf))
 
-        # 5. Build the per-frame output and promote tentative tracks.
+        # 5. Build the per-frame output and promote tentative tracks
         #
         # A track is reported this frame if:
         #   (a) it is already confirmed and still alive (within max_age), OR
         #   (b) it is tentative, was matched this frame, AND has accumulated
-        #       enough consecutive hits to be promoted now.
-        #
-        # Confirmed tracks are reported even on missed frames -- we report
-        # the Kalman-predicted box. This is the entire point of having a
-        # motion model: the track persists through brief occlusions.
+        #       enough consecutive hits to be promoted now
         #
         # The "promote on this frame's match" case in (b) handles the very
         # first frames of the tracker. Without it, a track born in frame 1
@@ -220,10 +211,7 @@ class Tracker:
         for t in self.tracks:
             # Tracks beyond max_age are about to be deleted in step 6;
             # don't emit a final output row for them. This makes max_age
-            # the literal upper bound on time_since_update in output:
-            # a track reported with time_since_update == k means it has
-            # been extrapolated for exactly k frames since its last
-            # successful detection update, and k <= max_age always.
+            # the literal upper bound on time_since_update in output
             if t.time_since_update > self.max_age:
                 continue
             if t.confirmed:
@@ -244,17 +232,17 @@ class Tracker:
                     )
                 )
 
-        # 6. Delete tracks that have been unmatched for too long.
+        # 6. Delete tracks that have been unmatched for too long
         self.tracks = [t for t in self.tracks if t.time_since_update <= self.max_age]
 
         return outputs
 
     def reset(self) -> None:
-        """Clear all tracks and reset internal counters.
+        """Clear all tracks and reset internal counters
 
         Call between clips when running on multiple sequences in a row,
         otherwise track IDs and frame counts will leak from one clip
-        into the next.
+        into the next
         """
         self.tracks = []
         self._next_id = 1

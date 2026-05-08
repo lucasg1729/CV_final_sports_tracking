@@ -1,8 +1,8 @@
 """Configuration loading.
 
 Loads `configs/default.yaml`, then overlays `configs/local.yaml` if it
-exists. local.yaml is gitignored, so each user (you, your partner, the
-graders) can set their own dataset paths without polluting the repo.
+exists. local.yaml is gitignored, so each user can set their own 
+dataset paths without polluting the repo.
 
 Usage:
     from sports_tracker.config import load_config
@@ -17,17 +17,17 @@ from typing import Any
 
 import yaml
 
-# The repo root is two levels up from this file:
-#   sports_tracker/sports_tracker/config.py  ->  sports_tracker/
+# The repo root is two levels up from this file
+# sports_tracker/sports_tracker/config.py  ->  sports_tracker/
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = REPO_ROOT / "configs"
 
 
 def load_config() -> dict[str, Any]:
-    """Load default config, then overlay local.yaml if present.
+    """Load default config, then overlay local.yaml if present
 
     Returns a dict. Raises FileNotFoundError if default.yaml is missing
-    (which would mean the repo is broken / incomplete).
+    (which would mean the repo is broken / incomplete)
     """
     default_path = CONFIG_DIR / "default.yaml"
     if not default_path.exists():
@@ -48,10 +48,10 @@ def load_config() -> dict[str, Any]:
 
 
 def resolve_path(path_value: str) -> Path:
-    """Resolve a path from config to an absolute Path.
+    """Resolve a path from config to an absolute Path
 
     Relative paths are resolved against the repo root, so behavior is
-    independent of where the script is invoked from.
+    independent of where the script is invoked from
     """
     p = Path(path_value)
     if not p.is_absolute():

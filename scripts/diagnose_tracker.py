@@ -56,7 +56,7 @@ def diagnose(
     iou_threshold: float,
     det_conf: float,
 ) -> None:
-    """Run a tracker on a clip but record every track's lifecycle."""
+    """Run a tracker on a clip but record every track's lifecycle"""
     n_frames = get_clip_n_frames(sportsmot_root, split, clip_name)
     frame_dets, _ = load_detections(cache_path, min_conf=det_conf, n_frames=n_frames)
 
@@ -67,30 +67,27 @@ def diagnose(
     tracks: list[dict] = []
     histories: dict[int, dict] = {}  # finished tracks for analysis
 
-    # Stats we want to capture across all frames.
+    # Stats we want to capture across all frames
     total_dets = 0
     total_unmatched_dets = 0
     total_matched_pairs = 0
 
-    # Distribution of IOU values for matched pairs vs near-misses.
+    # Distribution of IOU values for matched pairs vs near-misses
     matched_ious: list[float] = []
     near_miss_ious: list[float] = []  # best-IOU per unmatched-det, when nonzero
 
     for fd in frame_dets:
         total_dets += len(fd.boxes)
 
-        # Predict.
         predicted_boxes = np.array(
             [t["kf"].predict() for t in tracks], dtype=np.float64
         ).reshape(-1, 4)
 
-        # Associate.
         result = associate(
             predicted_boxes, fd.boxes, iou_threshold=iou_threshold
         )
 
-        # Capture IOU stats: what's the IOU of each matched pair, and
-        # what's the best IOU available for each unmatched detection?
+        # Capture IOU stats
         if len(predicted_boxes) and len(fd.boxes):
             iou_mat = iou_matrix(predicted_boxes, fd.boxes)
             for ti, di in result.matches:
@@ -103,12 +100,11 @@ def diagnose(
                         near_miss_ious.append(best)
         total_unmatched_dets += len(result.unmatched_detections)
 
-        # Update matched.
         for track_idx, det_idx in result.matches:
             tracks[track_idx]["kf"].update(fd.boxes[det_idx])
             tracks[track_idx]["history"].append((fd.frame_idx, "match"))
 
-        # Spawn new tracks.
+        # Spawn new tracks
         for det_idx in result.unmatched_detections:
             kf = BoxKalmanFilter(fd.boxes[det_idx])
             tid = next_id
@@ -122,11 +118,10 @@ def diagnose(
                 }
             )
 
-        # Record misses for unmatched tracks.
+        # Record misses for unmatched tracks
         for ti in result.unmatched_tracks:
             tracks[ti]["history"].append((fd.frame_idx, "miss"))
 
-        # Delete + record histories.
         survivors = []
         for t in tracks:
             if t["kf"].time_since_update > max_age:
@@ -136,19 +131,17 @@ def diagnose(
                 survivors.append(t)
         tracks = survivors
 
-    # Add still-alive tracks at end.
+    # Add still-alive tracks at end
     for t in tracks:
         t["died_frame"] = None
         histories[t["id"]] = t
 
-    # ------------------------------------------------------------------
-    # Print diagnostic summary.
-    # ------------------------------------------------------------------
+    # Print diagnostic summary
     n_total_tracks = len(histories)
     n_died = sum(1 for t in histories.values() if t["died_frame"] is not None)
     n_alive_at_end = n_total_tracks - n_died
 
-    # How long did tracks live?
+    # Track lifetimes
     lifetimes = []
     for t in histories.values():
         end = t["died_frame"] if t["died_frame"] is not None else n_frames
@@ -159,16 +152,15 @@ def diagnose(
         1
         for t in histories.values()
         if sum(1 for _, ev in t["history"] if ev == "match")
-        >= min_hits  # rough proxy: total matches >= min_hits
+        >= min_hits  # total matches >= min_hits
     )
 
-    # Distribution of "matches per track."
+    # Distribution of matches per track
     matches_per_track = Counter()
     for t in histories.values():
         n_match = sum(1 for _, ev in t["history"] if ev == "match")
         matches_per_track[n_match] += 1
 
-    # Lifetime histogram, bucketed.
     def bucket(n):
         if n <= 1:
             return "1"
@@ -220,7 +212,7 @@ def diagnose(
         print(f"  >20  {n_long:>4}  (long-lived tracks)")
     print()
 
-    # IOU distributions.
+    # IOU distributions
     if matched_ious:
         m = np.array(matched_ious)
         print(
@@ -231,7 +223,7 @@ def diagnose(
     if near_miss_ious:
         nm = np.array(near_miss_ious)
         # How many unmatched detections had a track box overlapping
-        # with IOU just below the threshold? Those are association failures.
+        # with IOU just below the threshold? Those are association failures
         n_close = sum(
             1 for v in nm if v < iou_threshold and v >= iou_threshold * 0.5
         )
@@ -253,7 +245,7 @@ def diagnose(
             print(
                 "  - Many tracks lived only 1 frame. This usually means the "
                 "detector is noisy at low-confidence detections. Consider "
-                "raising --det-conf to filter out single-frame ghosts."
+                "raising --det-conf to filter out single-frame ghosts"
             )
         if (
             near_miss_ious
@@ -262,7 +254,7 @@ def diagnose(
             print(
                 "  - Many unmatched detections had a nearby track. This usually "
                 "means iou_threshold is too strict for the motion in this clip. "
-                "Try lowering --iou-threshold to 0.2 or even 0.1."
+                "Try lowering --iou-threshold to 0.2 or even 0.1"
             )
         median_life = float(np.median(lifetimes))
         if median_life < 10:

@@ -1,8 +1,7 @@
-"""Verify the evaluation module without pytest.
+"""Verify the evaluation module without pytest
 
 If py-motmetrics isn't installed, the metric-computation checks are
-skipped with a notice but the rest of the script (formatting helpers)
-still runs.
+skipped with a notice but the rest of the script still runs.
 """
 
 from __future__ import annotations
@@ -91,7 +90,7 @@ from sports_tracker.evaluation import evaluate_clip, evaluate_clips
 with tempfile.TemporaryDirectory() as tmp:
     tmp_path = Path(tmp)
 
-    # Perfect predictions.
+    # Perfect predictions
     gt_rows = [
         (1, 1, 100, 100, 50, 100),
         (1, 2, 300, 200, 50, 100),
@@ -113,7 +112,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("perfect predictions: 0 ID switches", metrics["num_switches"] == 0)
     check("perfect predictions: 2 unique GT objects", metrics["num_unique_objects"] == 2)
 
-    # Half-coverage predictions.
+    # Half-coverage predictions
     pred_rows = [(1, 1, 100, 100, 50, 100), (2, 1, 105, 100, 50, 100)]
     pred_path = tmp_path / "half.txt"
     write_mot(pred_path, pred_rows)
@@ -133,7 +132,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("half-coverage: 2 misses", metrics["num_misses"] == 2)
     check("half-coverage: 0 FP", metrics["num_false_positives"] == 0)
 
-    # ID switch.
+    # ID switch
     gt_rows = []
     for frame in range(1, 5):
         gt_rows.append((frame, 1, 100, 100, 50, 100))
@@ -156,7 +155,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("ID swap: at least 1 ID switch counted",
           metrics["num_switches"] >= 1, f"got {metrics['num_switches']}")
 
-    # Ignored GT rows.
+    # Ignored GT rows
     gt_path = tmp_path / "ignored_gt.txt"
     with open(gt_path, "w") as f:
         f.write("1,1,100,100,50,100,1,1,1.0\n")
@@ -169,7 +168,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("consider=0 rows ignored: MOTA = 1.0",
           abs(metrics["mota"] - 1.0) < 1e-9, f"got {metrics['mota']}")
 
-    # Multi-clip aggregation.
+    # Multi-clip aggregation
     pairs = []
     for clip_idx in range(2):
         gt_p = tmp_path / f"agg_{clip_idx}_gt.txt"

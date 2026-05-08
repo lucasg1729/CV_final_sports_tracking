@@ -17,7 +17,7 @@ Where:
 SportsMOT ground truth files use this format with one extra convention:
 gt.txt rows have additional fields after column 6 indicating whether
 the row is "valid" (column 7 = 1), the class label, and visibility.
-For our purposes we only read columns 1-6.
+For our purposes we only read columns 1-6
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import numpy as np
 
 
 class MotRow(NamedTuple):
-    """One row of a MOT-format file."""
+    """One row of a MOT-format file"""
 
     frame: int
     track_id: int
@@ -44,15 +44,15 @@ def write_mot_file(
     out_path: Path,
     rows: List[MotRow],
 ) -> None:
-    """Write tracking results in MOT Challenge format.
+    """Write tracking results in MOT Challenge format
 
     Rows are sorted by (frame, track_id) before writing, matching the
-    convention expected by the motmetrics evaluator.
+    convention expected by the motmetrics evaluator
 
     Args:
-        out_path: where to write. Parent dir is created if needed.
+        out_path: where to write. Parent dir is created if needed
         rows: tracking output rows. The internal [x1, y1, x2, y2] format
-            is converted to MOT's top-left + width/height format.
+            is converted to MOT's top-left + width/height format
     """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,8 +63,8 @@ def write_mot_file(
         for r in sorted_rows:
             w = r.x2 - r.x1
             h = r.y2 - r.y1
-            # MOT format: frame, id, x, y, w, h, conf, x_world, y_world, z_world.
-            # World coords are -1 for 2D tracking.
+            # MOT format: frame, id, x, y, w, h, conf, x_world, y_world, z_world
+            # World coords are -1 for 2D tracking
             f.write(
                 f"{r.frame},{r.track_id},"
                 f"{r.x1:.2f},{r.y1:.2f},{w:.2f},{h:.2f},"
@@ -73,11 +73,11 @@ def write_mot_file(
 
 
 def read_mot_file(path: Path) -> List[MotRow]:
-    """Read a MOT-format file and return rows in [x1, y1, x2, y2] format.
+    """Read a MOT-format file and return rows in [x1, y1, x2, y2] format
 
     Handles both prediction files and ground-truth files (which may have
     extra columns after column 6 in some datasets including SportsMOT).
-    Only the first 6 numeric fields are interpreted.
+    Only the first 6 numeric fields are interpreted
     """
     path = Path(path)
     rows: List[MotRow] = []
@@ -97,7 +97,7 @@ def read_mot_file(path: Path) -> List[MotRow]:
             y = float(parts[3])
             w = float(parts[4])
             h = float(parts[5])
-            # Confidence is column 7 (index 6); default to 1.0 if absent.
+            # Confidence is column 7 (index 6); default to 1.0 if absent
             confidence = float(parts[6]) if len(parts) > 6 else 1.0
             rows.append(
                 MotRow(
@@ -114,7 +114,7 @@ def read_mot_file(path: Path) -> List[MotRow]:
 
 
 def rows_to_dict(rows: List[MotRow]) -> dict[int, list[MotRow]]:
-    """Group MOT rows by frame number for quick per-frame lookup."""
+    """Group MOT rows by frame number for quick per-frame lookup"""
     by_frame: dict[int, list[MotRow]] = {}
     for r in rows:
         by_frame.setdefault(r.frame, []).append(r)

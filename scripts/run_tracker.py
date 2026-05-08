@@ -1,4 +1,4 @@
-"""Run the tracker on a clip's cached detections and save MOT-format output.
+"""Run the tracker on a clip's cached detections and save MOT-format output
 
 Usage:
     python scripts/run_tracker.py --clip v_xxx
@@ -7,7 +7,7 @@ Usage:
     python scripts/run_tracker.py --clip v_xxx --tag t-lost-ablation/max_age_5
 
 The --tag option puts results under results/<tag>/<clip>.txt instead of
-results/<clip>.txt, which is the cleanest way to organize ablation runs.
+results/<clip>.txt
 """
 
 from __future__ import annotations
@@ -32,19 +32,15 @@ from sports_tracker.tracker import (
 from sports_tracker.association import DEFAULT_IOU_THRESHOLD
 
 
-# Confidence below which we drop YOLO detections before they reach the
-# tracker. Lower than YOLO's typical operating threshold because we want
-# to catch occluded players, but high enough to filter obvious noise.
+# Confidence below which we drop YOLO detections before they reach the tracker
 DEFAULT_DET_CONF = 0.3
 
 
 def get_clip_n_frames(sportsmot_root: Path, split: str, clip_name: str) -> int:
-    """Read seqLength from the clip's seqinfo.ini.
+    """Read seqLength from the clip's seqinfo.ini
 
-    We need this to run the tracker over EVERY frame, including ones
-    YOLO didn't detect anything in. If we only iterated over frames
-    that had detections, the tracker would be stepped fewer times than
-    it should be, causing tracks to age incorrectly.
+    We need this to run the tracker over every frame, including ones
+    YOLO didn't detect anything in
     """
     import configparser
 
@@ -67,16 +63,14 @@ def run_clip(
     iou_threshold: float,
     det_conf: float,
 ) -> dict:
-    """Run the tracker over one clip and save MOT-format output.
+    """Run the tracker over one clip and save MOT-format output
 
     Returns a dict of summary statistics for the run: frame count,
-    average detections per frame, total track outputs, runtime.
+    average detections per frame, total track outputs, runtime
     """
     n_frames = get_clip_n_frames(sportsmot_root, split, clip_name)
 
-    # Load cached detections in DENSE mode so we get one entry per
-    # frame (with empty boxes on frames YOLO found nothing in). This
-    # is essential for correct tracker bookkeeping.
+    # Load cached detections in dense mode so we get one entry per frame
     frame_dets, meta = load_detections(
         cache_path, min_conf=det_conf, n_frames=n_frames
     )
@@ -106,7 +100,7 @@ def run_clip(
                     x2=float(o.bbox[2]),
                     y2=float(o.bbox[3]),
                     # Tracker doesn't carry detection confidence through, so
-                    # we report 1.0. Could be wired through later if needed.
+                    # we report 1.0
                     confidence=1.0,
                 )
             )
@@ -204,7 +198,7 @@ def main() -> int:
     if args.tag:
         results_dir = results_dir / args.tag
 
-    # Resolve which clips to process.
+    # Clips to process
     if args.all:
         cache_files = sorted(cache_dir.glob("*.npz"))
         if not cache_files:

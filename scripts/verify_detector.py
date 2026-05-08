@@ -1,4 +1,4 @@
-"""Run the detector module's cache I/O checks without pytest."""
+"""Run the detector module's cache I/O checks without pytest"""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory() as tmp:
     print("Cache I/O round-trip")
     print("-" * 60)
 
-    # Basic round-trip.
+    # Basic round-trip
     fds = [
         make_fd(1, ([10, 20, 30, 40], 0.9), ([50, 60, 70, 80], 0.8)),
         make_fd(2, ([15, 25, 35, 45], 0.7)),
@@ -82,14 +82,14 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check("basic load: frame 2 has 1 box", loaded[1].boxes.shape == (1, 4))
 
-    # Empty round-trip.
+    # Empty round-trip
     cache = tmp_path / "empty.npz"
     save_detections(cache, [], {"clip": "empty"})
     loaded, meta = load_detections(cache)
     check("empty save/load: no frames", loaded == [])
     check("empty save/load: meta preserved", meta == {"clip": "empty"})
 
-    # Sparse mode skips frames with no detections.
+    # Sparse mode skips frames with no detections
     fds = [
         make_fd(1, ([0, 0, 10, 10], 0.9)),
         make_fd(2),  # empty
@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"got {[fd.frame_idx for fd in loaded]}",
     )
 
-    # Dense mode fills in missing frames.
+    # Dense mode fills in missing frames
     loaded, _ = load_detections(cache, n_frames=4)
     check("dense mode: all 4 frames present", len(loaded) == 4)
     check("dense mode: frame 1 has det", loaded[0].frame_idx == 1 and len(loaded[0].boxes) == 1)
@@ -112,7 +112,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("dense mode: frame 3 has det", loaded[2].frame_idx == 3 and len(loaded[2].boxes) == 1)
     check("dense mode: frame 4 empty", loaded[3].frame_idx == 4 and len(loaded[3].boxes) == 0)
 
-    # min_conf at load time.
+    # min_conf at load time
     fds = [
         make_fd(
             1,
@@ -132,7 +132,7 @@ with tempfile.TemporaryDirectory() as tmp:
         abs(loaded_strict[0].scores[0] - 0.9) < 1e-6,
     )
 
-    # min_conf can empty a frame in sparse mode.
+    # min_conf can empty a frame in sparse mode
     fds = [
         make_fd(1, ([0, 0, 10, 10], 0.2)),
         make_fd(2, ([5, 5, 15, 15], 0.9)),
@@ -145,7 +145,7 @@ with tempfile.TemporaryDirectory() as tmp:
         [fd.frame_idx for fd in loaded] == [2],
     )
 
-    # Save sorts unsorted input.
+    # Save sorts unsorted input
     fds = [
         make_fd(3, ([3, 3, 13, 13], 0.5)),
         make_fd(1, ([1, 1, 11, 11], 0.5)),

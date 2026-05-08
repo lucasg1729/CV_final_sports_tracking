@@ -13,7 +13,7 @@ from sports_tracker.association import (
 )
 
 
-# --- Scalar IOU --------------------------------------------------------------
+# Scalar IOU
 
 
 def test_iou_identical_boxes_is_one():
@@ -63,7 +63,7 @@ def test_iou_degenerate_box_returns_zero():
     assert iou(good, inverted) == 0.0
 
 
-# --- Vectorized matrix version ----------------------------------------------
+# Vectorized matrix version
 
 
 def test_iou_matrix_matches_scalar():
@@ -73,7 +73,7 @@ def test_iou_matrix_matches_scalar():
     """
     rng = np.random.default_rng(seed=42)
     n, m = 5, 7
-    # Random boxes with positive area.
+    # Random boxes with positive area
     tracks = rng.uniform(0, 100, size=(n, 2))
     sizes_t = rng.uniform(10, 50, size=(n, 2))
     tracks = np.hstack([tracks, tracks + sizes_t])
@@ -100,7 +100,7 @@ def test_iou_matrix_empty_inputs():
     assert iou_matrix(empty, empty).shape == (0, 0)
 
 
-# --- Association --------------------------------------------------------------
+# Association
 
 
 def test_associate_perfect_match():
@@ -112,7 +112,7 @@ def test_associate_perfect_match():
     assert len(result.matches) == 3
     assert len(result.unmatched_tracks) == 0
     assert len(result.unmatched_detections) == 0
-    # Each track should be matched to the detection at the same index.
+    # Each track should be matched to the detection at the same index
     matches_dict = dict(result.matches)
     assert matches_dict == {0: 0, 1: 1, 2: 2}
 
@@ -150,7 +150,7 @@ def test_associate_gating_rejects_low_iou():
     even if Hungarian's optimum assigned them. Both fall through to
     unmatched lists.
     """
-    # Slight overlap (IOU ~= 0.04, well below 0.3 default).
+    # Slight overlap (IOU ~= 0.04, well below 0.3 default)
     tracks = np.array([[0.0, 0.0, 10.0, 10.0]])
     dets = np.array([[8.0, 8.0, 18.0, 18.0]])
     overlap = iou(tracks[0], dets[0])
@@ -167,14 +167,14 @@ def test_associate_picks_best_when_two_tracks_compete():
     """Two tracks both overlap the same detection. Hungarian should pick
     the higher-IOU pairing. The other track ends up unmatched.
     """
-    # Track 0 is far from the detection (low overlap).
-    # Track 1 is exactly aligned with the detection.
+    # Track 0 is far from the detection (low overlap)
+    # Track 1 is exactly aligned with the detection
     tracks = np.array(
         [[0.0, 0.0, 10.0, 10.0], [20.0, 20.0, 30.0, 30.0]]
     )
     dets = np.array([[20.0, 20.0, 30.0, 30.0]])
     result = associate(tracks, dets)
-    # Track 1 should be the one matched (perfect IOU).
+    # Track 1 should be the one matched (perfect IOU)
     assert len(result.matches) == 1
     assert tuple(result.matches[0]) == (1, 0)
     assert list(result.unmatched_tracks) == [0]
@@ -246,11 +246,11 @@ def test_associate_threshold_is_tunable():
     dets = np.array([[5.0, 5.0, 15.0, 15.0]])
     overlap = iou(tracks[0], dets[0])  # = 1/7 ~= 0.143
 
-    # Threshold below the overlap: matched.
+    # Threshold below the overlap means they matched
     result = associate(tracks, dets, iou_threshold=overlap - 0.01)
     assert len(result.matches) == 1
 
-    # Threshold above the overlap: rejected.
+    # Threshold above the overlap means they are rejected
     result = associate(tracks, dets, iou_threshold=overlap + 0.01)
     assert len(result.matches) == 0
     assert list(result.unmatched_tracks) == [0]

@@ -1,11 +1,11 @@
-"""Run YOLO over a SportsMOT clip and cache the detections.
+"""Run YOLO over a SportsMOT clip and cache the detections
 
 Usage:
     python scripts/run_detector.py --clip v_-6Os86HzwCs_c001
     python scripts/run_detector.py --clip v_xxx --conf 0.05 --model yolov8s.pt
     python scripts/run_detector.py --all          # process every basketball clip in val
 
-The cache is written to cache/detections/<clip>.npz relative to the repo root.
+The cache is written to cache/detections/<clip>.npz relative to the repo root
 """
 
 from __future__ import annotations
@@ -53,13 +53,12 @@ def detect_clip(
     conf: float,
     progress_every: int = 50,
 ) -> list[FrameDetections]:
-    """Run YOLO over every frame in a clip's img1/ directory.
+    """Run YOLO over every frame in a clip's img1/ directory
 
-    Returns one FrameDetections per processed frame (in order). Frames
-    with zero detections are still included with empty arrays so the
-    caller can recover the full sequence length.
+    Returns one FrameDetections per processed frame. Frames with zero 
+    detections are still included so the caller can recover the full 
+    sequence length
     """
-    # Local imports so the top-level import doesn't drag in cv2 either.
     import cv2
 
     img_dir = clip_dir / "img1"
@@ -72,7 +71,7 @@ def detect_clip(
     results: list[FrameDetections] = []
 
     for i, frame_path in enumerate(frame_paths, start=1):
-        # Frame index follows the file name's numeric stem (000001 -> 1).
+        # Frame index follows the file name's stem
         frame_idx = int(frame_path.stem)
 
         img = cv2.imread(str(frame_path))
@@ -149,9 +148,8 @@ def main() -> int:
         else REPO_ROOT / "cache" / "detections"
     )
 
-    # Resolve which clips to process.
     if args.all:
-        # splits_dir is only needed when filtering by sport across the full split.
+        # splits_dir is only needed when filtering by sport across the full split
         splits_dir = resolve_path(cfg["splits_dir"])
         whitelist = list_clips_for_sport(splits_dir, sport) if sport != "all" else None
         all_on_disk = sorted(

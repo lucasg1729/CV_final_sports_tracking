@@ -1,8 +1,8 @@
-"""Plot ablation results from per-tag summary.csv files.
+"""Plot ablation results from per-tag summary.csv files
 
 Reads results/<tag>/summary.csv for each ablation run, extracts the
 OVERALL row's metrics, and produces line plots of MOTA / IDF1 vs the
-swept parameter.
+swept parameter
 
 Usage:
     python scripts/plot_ablation.py \
@@ -14,8 +14,7 @@ Usage:
         --out results/figures/mota_vs_maxage.png
 
 The --param flag is just used as the x-axis label; the actual numeric
-values are extracted from each tag name (e.g. "conf-0.55" -> 0.55,
-"maxage-30" -> 30).
+values are extracted from each tag name
 """
 
 from __future__ import annotations
@@ -32,12 +31,11 @@ from sports_tracker.config import REPO_ROOT
 
 
 def extract_value(tag: str) -> float:
-    """Pull the numeric value out of a tag name.
+    """Pull the numeric value out of a tag name
 
     'conf-0.55' -> 0.55, 'maxage-30' -> 30.0, 'iou-0.3' -> 0.3.
     Falls back to the raw string if no number is found, which would
-    fail later -- worth knowing immediately rather than producing a
-    silently misleading plot.
+    fail later instead of producing a silently misleading plot.
     """
     match = re.search(r"[-_](\d+\.?\d*)$", tag)
     if not match:
@@ -49,12 +47,12 @@ def extract_value(tag: str) -> float:
 
 
 def load_overall_row(csv_path: Path) -> dict[str, float]:
-    """Read a summary.csv and return the OVERALL row as a dict."""
+    """Read a summary.csv and return the OVERALL row as a dict"""
     with open(csv_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
             if row.get("clip") == "OVERALL":
-                # Convert numeric fields. The CSV stores them as strings.
+                # Convert numeric fields
                 out = {}
                 for k, v in row.items():
                     if k == "clip":
@@ -114,7 +112,7 @@ def main() -> int:
         Path(args.results_dir) if args.results_dir else REPO_ROOT / "results"
     )
 
-    # Load each tag's summary CSV.
+    # Load each tag's summary CSV
     points = []  # list of (param_value, metric_dict)
     for tag in args.tags:
         csv_path = results_dir / tag / "summary.csv"
@@ -133,7 +131,7 @@ def main() -> int:
         print("No data loaded; nothing to plot.")
         return 1
 
-    # Sort by parameter value so the line plot is monotonic on x.
+    # Sort by parameter value
     points.sort(key=lambda p: p[0])
 
     xs = [p[0] for p in points]
@@ -141,16 +139,13 @@ def main() -> int:
 
     fig, ax_mota = plt.subplots(figsize=(7, 4.5))
 
-    # Two-axis plot: MOTA on left, IDF1 (and other rate metrics) on right.
-    # This makes the relative shapes of both curves comparable at a glance,
-    # since MOTA and IDF1 typically live in the same 0-1 range but can
-    # peak at different x values.
+    # Two-axis plot with MOTA on left, IDF1 (and other rate metrics) on right
     ax_idf1 = ax_mota.twinx() if len(args.metrics) > 1 else None
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     for i, metric in enumerate(args.metrics):
         ys = [p[1].get(metric) for p in points]
-        # Skip a metric entirely if any point is missing it.
+        # Skip a metric entirely if any point is missing it
         if any(y is None for y in ys):
             print(f"[skip] metric {metric!r}: not found in all summaries")
             continue
@@ -160,9 +155,7 @@ def main() -> int:
         target_ax.set_ylabel(metric, color=color)
         target_ax.tick_params(axis="y", labelcolor=color)
 
-        # Annotate the peak point so it's easy to read off the figure.
-        # Stagger MOTA vs IDF1 vertically so labels don't overlap when
-        # both metrics peak at the same x value.
+        # Annotate the peak point so it's easy to read off the figure
         peak_idx = max(range(len(ys)), key=lambda j: ys[j])
         y_offset = 8 if i == 0 else -14
         target_ax.annotate(
@@ -179,7 +172,7 @@ def main() -> int:
     ax_mota.set_title(f"Tracking metrics vs {args.param}")
     ax_mota.grid(True, alpha=0.3)
 
-    # Combined legend (matplotlib's twin-axis legend is fiddly).
+    # Combined legend
     lines, labels = ax_mota.get_legend_handles_labels()
     if ax_idf1 is not None:
         l2, lab2 = ax_idf1.get_legend_handles_labels()

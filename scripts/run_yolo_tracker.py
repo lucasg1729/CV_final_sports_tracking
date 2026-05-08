@@ -1,26 +1,19 @@
-"""Run YOLO's built-in tracker and produce MOT-format predictions.
+"""Run YOLO's built-in tracker and produce MOT-format predictions
 
-YOLO ships two trackers via ``model.track()``: ``bytetrack`` and
-``botsort``. Both apply Kalman + Hungarian on top of the YOLO detector,
-similar to our hand-crafted SORT, but with various refinements
-(ByteTrack also matches low-confidence detections in a second pass;
-BoT-SORT adds appearance features).
+YOLO ships two trackers through model.track() with bytetrack and
+botsort. Both apply Kalman + Hungarian on top of the YOLO detector,
+similar to our hand-crafted SORT, but with various refinements.
 
-Why this script exists: comparing our from-scratch SORT against an
-established, similar tracker is the third contribution our project
-introduction promises. By running both through the same evaluation
-harness (scripts/evaluate.py) we get a clean apples-to-apples comparison.
+We want to compare our from-scratch SORT against an established, similar 
+tracker. By running both through the same evaluation script 
+(scripts/evaluate.py) we get a clean comparison
 
 Usage:
     python scripts/run_yolo_tracker.py --clip v_xxx --tracker bytetrack
     python scripts/run_yolo_tracker.py --all --tracker botsort
     python scripts/run_yolo_tracker.py --all --tracker bytetrack --conf 0.55
 
-Output: results/yolo-<tracker>/<clip>.txt in MOT-15 format.
-
-Note: unlike scripts/run_tracker.py, this re-runs YOLO from scratch on
-each frame. The tracker is tightly coupled to the detector's internal
-features and we can't just feed it our cached detections.
+Output: results/yolo-<tracker>/<clip>.txt in MOT-15 format
 """
 
 from __future__ import annotations
@@ -39,11 +32,7 @@ from sports_tracker.detector import PERSON_CLASS_ID
 from sports_tracker.mot_io import MotRow, write_mot_file
 
 
-# Confidence threshold matching what our hand-crafted tracker uses by
-# default. Keeping this consistent across all three trackers (ours,
-# ByteTrack, BoT-SORT) makes the comparison meaningful: any difference
-# in metrics is from the tracking logic, not from different detector
-# operating points.
+# Confidence threshold matching what our hand-crafted tracker uses by default
 DEFAULT_CONF = 0.55
 
 
@@ -71,13 +60,12 @@ def track_clip(
     conf: float,
     device: str | None,
 ) -> dict:
-    """Run YOLO's tracker over a clip and save MOT-format predictions.
+    """Run YOLO's tracker over a clip and save MOT-format predictions
 
-    YOLO's ``model.track()`` returns one Results object per frame, with
-    a ``.boxes`` attribute that includes ``.id`` -- the assigned track
-    ID. We pull (frame, id, box, conf) from each frame and append rows.
+    YOLO's model.track() returns one Results object per frame, with
+    a .boxes attribute that includes .id which is the assigned track
+    ID. We pull (frame, id, box, conf) from each frame and append rows
     """
-    # Local import so the top-level import doesn't pull in PyTorch.
     import cv2
     from ultralytics import YOLO
 
@@ -98,10 +86,7 @@ def track_clip(
         if img is None:
             raise IOError(f"Failed to read {frame_path}")
 
-        # persist=True maintains tracking state across frames -- without
-        # it, every call to track() would start fresh and produce no IDs.
-        # We pass classes=[PERSON_CLASS_ID] to filter to people only,
-        # matching what our run_detector.py does.
+        # persist=True maintains tracking state across frames
         results = model.track(
             img,
             classes=[PERSON_CLASS_ID],
@@ -116,7 +101,7 @@ def track_clip(
         if r.boxes is None or r.boxes.id is None:
             continue  # frame had no tracked boxes
 
-        # Pull tensors to numpy so we can iterate.
+        # Pull tensors to numpy so we can iterate
         ids = r.boxes.id.cpu().numpy().astype(np.int64)
         xyxy = r.boxes.xyxy.cpu().numpy()
         confs = r.boxes.conf.cpu().numpy()
@@ -203,7 +188,7 @@ def main() -> int:
     )
     out_subdir = results_dir / f"yolo-{args.tracker}"
 
-    # Resolve clips to process.
+    # Clips to process resolved
     if args.all:
         splits_dir = resolve_path(cfg["splits_dir"])
         whitelist = list_clips_for_sport(splits_dir, sport) if sport != "all" else None
@@ -214,8 +199,7 @@ def main() -> int:
             all_on_disk if whitelist is None
             else [n for n in all_on_disk if n in whitelist]
         )
-        # Only process clips we have detections for -- a heuristic for
-        # "this is one of the clips we're evaluating on."
+        # Only process clips we have detections for
         cache_dir = REPO_ROOT / "cache" / "detections"
         cached = {p.stem for p in cache_dir.glob("*.npz")}
         if cached:

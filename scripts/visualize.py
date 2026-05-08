@@ -1,16 +1,14 @@
-"""Render tracker output onto SportsMOT frames.
+"""Render tracker output onto SportsMOT frames
 
 Three modes:
 
-1. ``--frame N``         render a single frame as PNG (for figures)
-2. ``--video``           render every frame and write as MP4
-3. ``--side-by-side``    GT boxes left, predictions right, same frame
+1. --frame N         render a single frame as PNG (for figures)
+2. --video           render every frame and write as MP4
+3. --side-by-side    GT boxes left, predictions right, same frame
 
-ID colors are hash-based and stable across frames: track 7 is always
-the same color, regardless of clip. Side-by-side mode uses GT IDs and
-prediction IDs in the same color space, which makes identity errors
-visually obvious -- a "same player" who has different IDs in GT and
-prediction renders as different colors.
+ID colors are hash-based and stable across frames. Side-by-side mode 
+uses GT IDs and prediction IDs in the same color space, making 
+identity errors more obvious
 """
 
 from __future__ import annotations
@@ -27,7 +25,7 @@ from sports_tracker.config import REPO_ROOT, load_config, resolve_path
 from sports_tracker.mot_io import MotRow, read_mot_file, rows_to_dict
 
 
-# Box visual style.
+# Box visual style
 BOX_THICKNESS = 2
 LABEL_FONT_SCALE = 0.5
 LABEL_THICKNESS = 1
@@ -61,13 +59,13 @@ def color_for_id(track_id: int) -> tuple[int, int, int]:
 
 
 def draw_box(image, bbox, color, label):
-    """Draw a single bounding box with a labeled tab on top.
+    """Draw a single bounding box with a labeled tab on top
 
     Args:
-        image: BGR numpy array (modified in place).
-        bbox: (x1, y1, x2, y2) in pixel coordinates.
-        color: BGR tuple.
-        label: short string to draw above the box.
+        image: BGR numpy array (modified in place)
+        bbox: (x1, y1, x2, y2) in pixel coordinates
+        color: BGR tuple
+        label: short string to draw above the box
     """
     import cv2
 
@@ -75,7 +73,7 @@ def draw_box(image, bbox, color, label):
     cv2.rectangle(image, (x1, y1), (x2, y2), color, BOX_THICKNESS)
 
     # Compute label background size so text reads against a solid block
-    # rather than against busy basketball court textures.
+    # rather than against busy basketball court textures
     (tw, th), baseline = cv2.getTextSize(
         label, cv2.FONT_HERSHEY_SIMPLEX, LABEL_FONT_SCALE, LABEL_THICKNESS
     )
@@ -102,7 +100,7 @@ def render_frame(
     rows: list[MotRow],
     title: str | None = None,
 ) -> "np.ndarray":
-    """Draw all boxes from `rows` onto a copy of `image`."""
+    """Draw all boxes from rows onto a copy of image"""
     import cv2
 
     canvas = image.copy()
@@ -129,7 +127,7 @@ def render_side_by_side(
     gt_title: str = "Ground truth",
     pred_title: str = "Predictions",
 ) -> "np.ndarray":
-    """Build a horizontal panel with GT on the left, predictions on the right."""
+    """Build a horizontal panel with GT on the left, predictions on the right"""
     import cv2
 
     left = render_frame(image, gt_rows, title=gt_title)
@@ -146,7 +144,7 @@ def load_frames_dir(clip_dir: Path) -> list[Path]:
 
 
 def cmd_single_frame(args, sportsmot_root, split):
-    """Render one frame as a PNG."""
+    """Render one frame as a PNG"""
     import cv2
 
     clip_dir = sportsmot_root / split / args.clip
@@ -187,7 +185,7 @@ def cmd_single_frame(args, sportsmot_root, split):
 
 
 def cmd_video(args, sportsmot_root, split):
-    """Render every frame of a clip with overlaid boxes and write to MP4."""
+    """Render every frame of a clip with overlaid boxes and write to MP4"""
     import cv2
 
     clip_dir = sportsmot_root / split / args.clip
@@ -202,12 +200,12 @@ def cmd_video(args, sportsmot_root, split):
         if gt_path.exists():
             gt_by_frame = rows_to_dict(read_mot_file(gt_path))
 
-    # Read the first frame to get dimensions / FPS for the writer.
+    # Read the first frame to get dimensions and FPS
     first = cv2.imread(str(frame_paths[0]))
     h, w = first.shape[:2]
     out_w = w * 2 if args.side_by_side else w
 
-    # FPS: pull from seqinfo.ini if present, else default.
+    # FPS should pull from seqinfo.ini, else default
     import configparser
     fps = 25.0
     seqinfo = clip_dir / "seqinfo.ini"
@@ -222,7 +220,7 @@ def cmd_video(args, sportsmot_root, split):
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    # mp4v works on macOS/Linux without extra ffmpeg installs.
+    # mp4v works on macOS/Linux without extra ffmpeg installs
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(str(out_path), fourcc, fps, (out_w, h))
     if not writer.isOpened():

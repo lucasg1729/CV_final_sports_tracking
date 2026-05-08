@@ -15,11 +15,11 @@ from sports_tracker.tracker import Tracker, TrackOutput
 
 
 def box(cx: float, cy: float, w: float = 50.0, h: float = 100.0) -> np.ndarray:
-    """Build a [x1, y1, x2, y2] box centered at (cx, cy)."""
+    """Build a [x1, y1, x2, y2] box centered at (cx, cy)"""
     return np.array([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2])
 
 
-# --- Initialization and configuration ---------------------------------------
+# Initialization and configuration
 
 
 def test_init_validates_max_age():
@@ -33,19 +33,19 @@ def test_init_validates_min_hits():
 
 
 def test_empty_input_yields_empty_output():
-    """No detections, no tracks -> nothing to report."""
+    """No detections, no tracks means nothing to report"""
     tr = Tracker()
     outputs = tr.step(np.empty((0, 4)))
     assert outputs == []
 
 
-# --- Track promotion --------------------------------------------------------
+# Track promotion
 
 
 def test_new_track_held_back_for_min_hits_frames():
     """A new track should not appear in output until it has accumulated
     min_hits consecutive matches. With min_hits=3, the track should be
-    silent on frames 1 and 2, and first appear on frame 3.
+    silent on frames 1 and 2, and first appear on frame 3
     """
     tr = Tracker(min_hits=3, max_age=30)
     detections = [box(100, 100), box(105, 100), box(110, 100)]
@@ -63,7 +63,7 @@ def test_new_track_held_back_for_min_hits_frames():
 
 def test_track_id_is_stable_across_frames():
     """Once confirmed, a track's ID should not change frame to frame
-    even though its position is moving.
+    even though its position is moving
     """
     tr = Tracker(min_hits=3, max_age=30)
     ids_seen = []
@@ -73,14 +73,14 @@ def test_track_id_is_stable_across_frames():
         if out:
             ids_seen.append(out[0].id)
 
-    # Frames 1 and 2 produce no output, so we have 8 outputs.
+    # Frames 1 and 2 produce no output, so we have 8 outputs
     assert len(ids_seen) == 8
     assert all(i == ids_seen[0] for i in ids_seen), (
         f"Track ID changed during the clip: {ids_seen}"
     )
 
 
-# --- Multiple tracks --------------------------------------------------------
+# Multiple tracks
 
 
 def test_two_separate_objects_get_different_ids():
@@ -89,13 +89,13 @@ def test_two_separate_objects_get_different_ids():
     """
     tr = Tracker(min_hits=3, max_age=30)
     last_assignment = None
-    # Run for 8 frames so both tracks are confirmed and reported.
+    # Run for 8 frames so both tracks are confirmed and reported
     for t in range(8):
         dets = np.array([box(100 + 5 * t, 100), box(500 - 5 * t, 100)])
         out = tr.step(dets)
         if not out:
             continue
-        # Sort by x position so we can compare frame to frame.
+        # Sort by x position so we can compare frame to frame
         out_sorted = sorted(out, key=lambda o: o.bbox[0])
         ids_now = (out_sorted[0].id, out_sorted[1].id)
         if last_assignment is not None:
@@ -104,38 +104,38 @@ def test_two_separate_objects_get_different_ids():
             )
         last_assignment = ids_now
 
-    # Confirm we have two distinct IDs total.
+    # Confirm we have two distinct IDs total
     assert last_assignment is not None
     assert last_assignment[0] != last_assignment[1]
 
 
-# --- Occlusion handling -----------------------------------------------------
+# Occlusion handling
 
 
 def test_id_preserved_through_brief_occlusion():
-    """A confirmed track that briefly disappears (no detection for a
-    few frames) should keep its ID when it reappears, as long as we
-    stay within max_age.
+    """A confirmed track that briefly disappears 
+    should keep its ID when it reappears, as long as we
+    stay within max_age
     """
     tr = Tracker(min_hits=3, max_age=10)
 
-    # Establish a confirmed track over 5 frames.
+    # Establish a confirmed track over 5 frames
     for t in range(5):
         tr.step(np.array([box(100 + 5 * t, 100)]))
     out_before = tr.step(np.array([box(125, 100)]))
     assert len(out_before) == 1
     id_before = out_before[0].id
 
-    # Simulate 3 frames of occlusion (no detections).
+    # Simulate 3 frames of occlusion (no detections)
     for _ in range(3):
         out = tr.step(np.empty((0, 4)))
-        # Confirmed track should still be reported using its predicted box.
+        # Confirmed track should still be reported using its predicted box
         assert len(out) == 1
         assert out[0].id == id_before
         assert out[0].time_since_update > 0
 
-    # Player reappears -- the velocity model has been extrapolating, so
-    # the predicted position is now around x = 125 + 4*5 = 145.
+    # Player reappears and the velocity model has been extrapolating, so
+    # the predicted position is now around x = 125 + 4*5 = 145
     out_after = tr.step(np.array([box(150, 100)]))
     assert len(out_after) == 1
     assert out_after[0].id == id_before, (
@@ -146,11 +146,11 @@ def test_id_preserved_through_brief_occlusion():
 def test_track_deleted_after_max_age_misses():
     """If a confirmed track goes unmatched for more than max_age frames,
     it should be deleted, and a new detection in the same area should
-    receive a new ID rather than the old one.
+    receive a new ID rather than the old one
     """
     tr = Tracker(min_hits=3, max_age=5)
 
-    # Establish a confirmed track.
+    # Establish a confirmed track
     for t in range(5):
         tr.step(np.array([box(100, 100)]))
     out = tr.step(np.array([box(100, 100)]))
@@ -158,17 +158,17 @@ def test_track_deleted_after_max_age_misses():
 
     # Now feed empty detections for max_age + 2 = 7 frames. The track
     # should disappear from output (and from the internal track list)
-    # somewhere in there.
+    # somewhere in there
     for _ in range(tr.max_age + 2):
         tr.step(np.empty((0, 4)))
 
-    # Internal state: the track list should be empty.
+    # Internal state: the track list should be empty
     assert len(tr.tracks) == 0, (
         f"Track should have been deleted, but {len(tr.tracks)} remain"
     )
 
     # A new detection in the same place should get a new, larger ID.
-    # We need min_hits frames before it shows up in output.
+    # We need min_hits frames before it shows up in output
     new_id = None
     for t in range(5):
         out = tr.step(np.array([box(100, 100)]))
@@ -179,28 +179,28 @@ def test_track_deleted_after_max_age_misses():
     assert new_id > original_id
 
 
-# --- Spurious detections ----------------------------------------------------
+# Spurious detections
 
 
 def test_spurious_single_frame_detection_never_reported():
     """A detector blip that appears for one frame should not produce any
-    output, since min_hits=3 requires three consecutive matches.
+    output, since min_hits=3 requires three consecutive matches
     """
     tr = Tracker(min_hits=3, max_age=30)
 
     out = tr.step(np.array([box(100, 100)]))
     assert out == []
-    # No more detections after that.
+    # No more detections
     for _ in range(20):
         out = tr.step(np.empty((0, 4)))
         assert out == [], "Tentative track was reported despite never confirming"
 
 
-# --- Reset behavior ----------------------------------------------------------
+# Reset behavior
 
 
 def test_reset_clears_state_between_clips():
-    """After reset(), IDs should restart at 1 and the frame counter at 0."""
+    """After reset(), IDs should restart at 1 and the frame counter at 0"""
     tr = Tracker(min_hits=3, max_age=30)
     for t in range(5):
         tr.step(np.array([box(100, 100)]))
@@ -212,7 +212,7 @@ def test_reset_clears_state_between_clips():
     assert tr._next_id == 1
     assert tr._frame_count == 0
 
-    # Run again from scratch -- new track should get ID 1.
+    # Run again from scratch so new track should get ID 1
     for t in range(3):
         out = tr.step(np.array([box(200, 200)]))
     assert out[0].id == 1

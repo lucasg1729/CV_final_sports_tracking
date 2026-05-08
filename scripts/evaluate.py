@@ -7,7 +7,7 @@ Usage:
     python scripts/evaluate.py --all --save-csv results/summary.csv
 
 Reads ground-truth files from data/sportsmot_publish/dataset/<split>/<clip>/gt/gt.txt
-and predictions from results/<clip>.txt (or results/<tag>/<clip>.txt with --tag).
+and predictions from results/<clip>.txt (or results/<tag>/<clip>.txt with --tag)
 """
 
 from __future__ import annotations
@@ -76,7 +76,7 @@ def main() -> int:
     if args.tag:
         results_dir = results_dir / args.tag
 
-    # Build the (clip_name, gt_path, pred_path) list.
+    # Build the (clip_name, gt_path, pred_path) list
     if args.all:
         pred_files = sorted(results_dir.glob("*.txt"))
         if not pred_files:

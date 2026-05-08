@@ -5,7 +5,7 @@ with a seqinfo.ini, and a cached detection .npz file. Runs the tracker
 through scripts.run_tracker.run_clip, and verifies that the output MOT
 file has the structure we expect.
 
-This catches integration bugs: wrong frame indexing, wrong coordinate
+This catches integration bugs like wrong frame indexing, wrong coordinate
 conversion, the runner not actually writing output, etc.
 """
 
@@ -27,10 +27,10 @@ def make_fake_clip(
     width: int = 1280,
     height: int = 720,
 ) -> Path:
-    """Create a minimal SportsMOT-style clip directory.
+    """Create a minimal SportsMOT-style clip directory
 
-    Only includes seqinfo.ini and gt/ -- we don't actually need the JPG
-    frames for the runner to work, since detections come from the cache.
+    Only includes seqinfo.ini and gt we don't actually need the JPG
+    frames for the runner to work, since detections come from the cache
     """
     clip_dir = base_dir / "val" / clip_name
     (clip_dir / "img1").mkdir(parents=True, exist_ok=True)
@@ -58,7 +58,7 @@ def make_fake_cache(
     box_a_at_t,  # callable: t -> (x1, y1, x2, y2)
     box_b_at_t=None,
 ) -> None:
-    """Write a synthetic detection cache for two moving objects."""
+    """Write a synthetic detection cache for two moving objects"""
     frame_dets = []
     for t in range(1, n_frames + 1):
         boxes = [box_a_at_t(t)]
@@ -77,7 +77,7 @@ def make_fake_cache(
 
 
 def _import_run_clip():
-    """run_tracker.py is in scripts/, so we have to add scripts to sys.path."""
+    """run_tracker.py is in scripts/, so we have to add scripts to sys.path"""
     import sys
 
     scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
@@ -91,7 +91,7 @@ def _import_run_clip():
 def test_runner_produces_well_formed_mot_output(tmp_path: Path):
     """Run the runner end-to-end on a synthetic clip with two well-separated
     moving objects. Confirm the output file exists, has rows, and the rows
-    parse as valid MOT format.
+    parse as valid MOT format
     """
     sportsmot_root = tmp_path / "dataset"
     cache_dir = tmp_path / "cache"
@@ -102,7 +102,7 @@ def test_runner_produces_well_formed_mot_output(tmp_path: Path):
     n_frames = 15
     make_fake_clip(sportsmot_root, clip, n_frames=n_frames)
 
-    # Two objects moving in opposite directions across the frame.
+    # Two objects moving in opposite directions across the frame
     cache_path = cache_dir / f"{clip}.npz"
     make_fake_cache(
         cache_path,
@@ -126,27 +126,27 @@ def test_runner_produces_well_formed_mot_output(tmp_path: Path):
         det_conf=0.3,
     )
 
-    # The output file should exist and contain rows.
+    # The output file should exist and contain rows
     assert out_path.exists(), "Tracker did not produce an output file"
     rows = read_mot_file(out_path)
     assert len(rows) > 0, "Output file is empty"
 
-    # Frame indices in the output should fall within [1, n_frames].
+    # Frame indices in the output should fall within [1, n_frames]
     frames_seen = {r.frame for r in rows}
     assert frames_seen.issubset(set(range(1, n_frames + 1)))
 
-    # We have 2 distinct moving objects, so we should see exactly 2 unique IDs.
+    # We have 2 distinct moving objects, so we should see exactly 2 unique IDs
     unique_ids = {r.track_id for r in rows}
     assert len(unique_ids) == 2, f"Expected 2 unique IDs, got {unique_ids}"
 
-    # Each ID should track its own object across multiple frames.
+    # Each ID should track its own object across multiple frames
     assert stats["n_unique_tracks"] == 2
     assert stats["n_frames"] == n_frames
 
 
 def test_runner_handles_no_detections(tmp_path: Path):
     """A clip where the cache has zero detections in every frame should
-    still produce a (possibly empty) output file without crashing.
+    still produce a (possibly empty) output file without crashing
     """
     sportsmot_root = tmp_path / "dataset"
     cache_dir = tmp_path / "cache"
@@ -157,7 +157,7 @@ def test_runner_handles_no_detections(tmp_path: Path):
     n_frames = 5
     make_fake_clip(sportsmot_root, clip, n_frames=n_frames)
 
-    # Cache with no detections at all.
+    # Cache with no detections at all
     cache_path = cache_dir / f"{clip}.npz"
     save_detections(cache_path, [], {"clip": clip})
 
@@ -198,7 +198,7 @@ def test_runner_iterates_all_frames_even_when_some_have_no_detections(
     n_frames = 8
     make_fake_clip(sportsmot_root, clip, n_frames=n_frames)
 
-    # Detection only on the first 4 frames; nothing after.
+    # Detection only on the first 4 frames then nothing
     cache_path = cache_dir / f"{clip}.npz"
     make_fake_cache(
         cache_path,
@@ -221,12 +221,12 @@ def test_runner_iterates_all_frames_even_when_some_have_no_detections(
         det_conf=0.3,
     )
 
-    # Report covers all 8 frames (the run iterated all of them).
+    # Report covers all 8 frames (the run iterated all of them)
     assert stats["n_frames"] == n_frames
 
     # The track was confirmed by frame 3, then ran out of detections
     # after frame 4. With max_age=2, it should be reported with a
-    # predicted box for at most 2 more frames (5 and 6), then disappear.
+    # predicted box for at most 2 more frames (5 and 6), then disappear
     rows = read_mot_file(out_path)
     frames_seen = sorted({r.frame for r in rows})
     assert max(frames_seen) <= 6, (

@@ -11,7 +11,7 @@ from sports_tracker.mot_io import MotRow, read_mot_file, rows_to_dict, write_mot
 
 def test_write_then_read_roundtrip(tmp_path: Path):
     """Write some rows, read them back; data should be identical
-    (modulo conversion between [x1,y1,x2,y2] and [x,y,w,h]).
+    (modulo conversion between [x1,y1,x2,y2] and [x,y,w,h])
     """
     rows = [
         MotRow(frame=1, track_id=1, x1=10.0, y1=20.0, x2=60.0, y2=120.0, confidence=1.0),
@@ -32,7 +32,7 @@ def test_write_then_read_roundtrip(tmp_path: Path):
 
 
 def test_write_sorts_rows(tmp_path: Path):
-    """Output should be sorted by (frame, track_id) regardless of input order."""
+    """Output should be sorted by (frame, track_id) regardless of input order"""
     rows = [
         MotRow(frame=2, track_id=1, x1=0, y1=0, x2=10, y2=10, confidence=1.0),
         MotRow(frame=1, track_id=2, x1=0, y1=0, x2=10, y2=10, confidence=1.0),
@@ -46,7 +46,7 @@ def test_write_sorts_rows(tmp_path: Path):
 
 def test_read_handles_extra_columns(tmp_path: Path):
     """SportsMOT gt.txt has extra columns beyond the standard 7. Reader
-    should pick up the first 6 numeric values plus confidence.
+    should pick up the first 6 numeric values plus confidence
     """
     path = tmp_path / "gt.txt"
     # SportsMOT-style row: frame, id, x, y, w, h, conf, class, vis
@@ -70,7 +70,7 @@ def test_read_skips_blank_lines_and_comments(tmp_path: Path):
 
 
 def test_read_rejects_malformed_row(tmp_path: Path):
-    """A row with fewer than 6 fields should raise."""
+    """A row with fewer than 6 fields should raise"""
     path = tmp_path / "out.txt"
     path.write_text("1,2,3\n")
     with pytest.raises(ValueError, match="Malformed"):
@@ -79,7 +79,7 @@ def test_read_rejects_malformed_row(tmp_path: Path):
 
 def test_write_creates_parent_directories(tmp_path: Path):
     """write_mot_file should create the parent directory if needed,
-    so callers don't have to mkdir manually before writing.
+    so callers don't have to mkdir manually before writing
     """
     nested = tmp_path / "a" / "b" / "c.txt"
     rows = [MotRow(frame=1, track_id=1, x1=0, y1=0, x2=1, y2=1, confidence=1.0)]
@@ -100,7 +100,7 @@ def test_rows_to_dict_groups_correctly():
 
 
 def test_write_empty(tmp_path: Path):
-    """Writing an empty list should produce an empty file, not crash."""
+    """Writing an empty list should produce an empty file, not crash"""
     path = tmp_path / "empty.txt"
     write_mot_file(path, [])
     assert path.exists()

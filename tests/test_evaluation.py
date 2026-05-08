@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-# motmetrics 1.4.0 uses np.asfarray, which was removed in NumPy 2.0.
-# Restore it as an alias before motmetrics is imported.
+# motmetrics 1.4.0 uses np.asfarray, which was removed in NumPy 2.0, so have
+# to restore it as an alias before motmetrics is imported.
 if not hasattr(np, "asfarray"):
     np.asfarray = lambda a, dtype=np.float64: np.asarray(a, dtype=dtype)
 
@@ -28,11 +28,11 @@ from sports_tracker.evaluation import (
 motmetrics = pytest.importorskip("motmetrics")
 
 
-# --- Tests that need motmetrics ---------------------------------------------
+# Tests that need motmetrics
 
 
 def write_mot(path: Path, rows: list[tuple]) -> None:
-    """Write a MOT-format file from (frame, id, x, y, w, h) tuples."""
+    """Write a MOT-format file from (frame, id, x, y, w, h) tuples"""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for r in rows:
@@ -41,7 +41,7 @@ def write_mot(path: Path, rows: list[tuple]) -> None:
 
 
 def write_gt(path: Path, rows: list[tuple]) -> None:
-    """Write a SportsMOT-format gt.txt with the consider/class/visibility columns."""
+    """Write a SportsMOT-format gt.txt with the consider/class/visibility columns"""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for r in rows:
@@ -79,7 +79,7 @@ def test_perfect_predictions_score_perfect_mota(tmp_path: Path):
 
 
 def test_missed_predictions_decrease_mota(tmp_path: Path):
-    """If we miss half the predictions, MOTA should drop accordingly."""
+    """If we miss half the predictions, MOTA should drop accordingly"""
     from sports_tracker.evaluation import evaluate_clip
 
     gt_rows = [
@@ -88,7 +88,7 @@ def test_missed_predictions_decrease_mota(tmp_path: Path):
         (2, 1, 105, 100, 50, 100),
         (2, 2, 305, 200, 50, 100),
     ]
-    # Predictions only cover track 1.
+    # Predictions only cover track 1
     pred_rows = [
         (1, 1, 100, 100, 50, 100),
         (2, 1, 105, 100, 50, 100),
@@ -107,17 +107,16 @@ def test_missed_predictions_decrease_mota(tmp_path: Path):
 
 def test_id_switch_is_counted(tmp_path: Path):
     """If predicted IDs swap mid-clip while the GT IDs stay constant,
-    the evaluator should count an identity switch.
-    """
+    the evaluator should count an identity switch """
     from sports_tracker.evaluation import evaluate_clip
 
-    # GT: two stable players for 4 frames.
+    # GT: two stable players for 4 frames
     gt_rows = []
     for frame in range(1, 5):
         gt_rows.append((frame, 1, 100, 100, 50, 100))
         gt_rows.append((frame, 2, 300, 200, 50, 100))
 
-    # Predictions: same boxes, but the IDs swap on frame 3.
+    # Predictions: same boxes, but the IDs swap on frame 3
     pred_rows = [
         (1, 1, 100, 100, 50, 100),
         (1, 2, 300, 200, 50, 100),
@@ -149,11 +148,11 @@ def test_ignored_gt_rows_are_excluded(tmp_path: Path):
     gt_path = tmp_path / "gt.txt"
     pred_path = tmp_path / "pred.txt"
 
-    # Two players, plus a row with consider=0 that should be ignored.
+    # Two players, plus a row with consider=0 that should be ignored
     with open(gt_path, "w") as f:
         f.write("1,1,100,100,50,100,1,1,1.0\n")
         f.write("1,2,300,200,50,100,1,1,1.0\n")
-        # Ignored row -- a "phantom" entity we shouldn't be scored on.
+        # Ignored row -- a "phantom" entity we shouldn't be scored on
         f.write("1,99,500,500,50,100,0,1,1.0\n")
 
     # Predict only the two real players.
@@ -163,7 +162,7 @@ def test_ignored_gt_rows_are_excluded(tmp_path: Path):
     )
 
     metrics = evaluate_clip(gt_path, pred_path, iou_threshold=0.5)
-    # If the ignored row WERE counted, we'd have 1 miss and MOTA < 1.0.
+    # If the ignored row WERE counted, we'd have 1 miss and MOTA < 1.0
     assert metrics["num_misses"] == 0, (
         "consider=0 rows in gt.txt should not be counted as misses"
     )
@@ -172,11 +171,11 @@ def test_ignored_gt_rows_are_excluded(tmp_path: Path):
 
 def test_evaluate_clips_aggregates_correctly(tmp_path: Path):
     """The combined OVERALL row should have num_unique_objects equal to
-    the sum across clips (when IDs don't collide across clips).
+    the sum across clips (when IDs don't collide across clips)
     """
     from sports_tracker.evaluation import evaluate_clips
 
-    # Two clips, two distinct players each.
+    # Two clips, two distinct players each
     pairs = []
     for clip_idx in range(2):
         gt_path = tmp_path / f"clip_{clip_idx}_gt.txt"
@@ -197,11 +196,11 @@ def test_evaluate_clips_aggregates_correctly(tmp_path: Path):
     assert len(per_clip) == 2
     assert all(c.metrics["mota"] == pytest.approx(1.0) for c in per_clip)
     # py-motmetrics sums num_unique_objects across clips when the IDs are
-    # disjoint, giving 4 total unique GT objects.
+    # disjoint, giving 4 total unique GT objects
     assert combined["num_unique_objects"] == 4
 
 
-# --- Tests that don't need motmetrics ---------------------------------------
+# Tests that don't need motmetrics
 
 
 def test_fmt_value_int_metrics():
@@ -232,7 +231,7 @@ def test_format_summary_table_includes_all_metrics():
     combined = {m: 0.5 if m in {"mota", "motp", "idf1", "idp", "idr"} else 2
                 for m in DEFAULT_METRICS}
     table = format_summary_table(per_clip, combined)
-    # Sanity: every metric label and the OVERALL row should appear.
+    # Every metric label and the OVERALL row should appear
     for m in DEFAULT_METRICS:
         assert METRIC_LABELS[m] in table
     assert "OVERALL" in table

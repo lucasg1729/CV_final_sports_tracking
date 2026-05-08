@@ -1,10 +1,10 @@
-"""Tracking evaluation against MOT-format ground truth.
+"""Tracking evaluation against MOT-format ground truth
 
-Wraps the ``py-motmetrics`` library to compute the standard MOT
-Challenge metrics: MOTA, IDF1, identity switches, MT/ML, FP, FN.
+Wraps the py-motmetrics library to compute the standard MOT
+Challenge metrics: MOTA, IDF1, identity switches, MT/ML, FP, FN
 
-Note on file loading: motmetrics 1.4.0 ships ``mm.io.loadtxt``, which
-internally calls ``pandas.read_csv`` with column expectations that are
+Note on file loading: motmetrics 1.4.0 ships mm.io.loadtxt, which
+internally calls pandas.read_csv with column expectations that are
 incompatible with pandas 3.0's stricter CSV parser. Rather than
 chase that breakage, we load files ourselves and hand motmetrics a
 dataframe in the format it expects internally:
@@ -12,17 +12,12 @@ dataframe in the format it expects internally:
     columns: X, Y, Width, Height, Confidence, ClassId, Visibility
     index:   (FrameId, Id) MultiIndex
 
-We then call ``compare_to_groundtruth`` with these dataframes, which
+We then call compare_to_groundtruth with these dataframes, which
 works fine because the file-loading is the only fragile part.
 
 For ground truth files, we apply the SportsMOT/MOT16 convention that
-column 7 (the "consider" flag) gates whether a row is included in
-evaluation. Rows with consider == 0 are dropped before evaluation.
-
-References:
-    py-motmetrics: https://github.com/cheind/py-motmetrics
-    Bernardin & Stiefelhagen, 2008 (MOTA/MOTP definitions)
-    Ristani et al., 2016 (IDF1 definition)
+column 7 gates whether a row is included in evaluation. Rows with
+consider == 0 are dropped before evaluation
 """
 
 from __future__ import annotations
@@ -33,7 +28,7 @@ from typing import Iterable, List, Optional
 
 
 # Standard set of metrics we care about for the report. Order matters:
-# this is the column order used in the printed summary table.
+# this is the column order used in the printed summary table
 DEFAULT_METRICS = [
     "mota",
     "motp",
@@ -51,7 +46,7 @@ DEFAULT_METRICS = [
     "num_unique_objects",
 ]
 
-# Pretty names used in the printed summary table.
+# Other names used in the printed summary table
 METRIC_LABELS = {
     "mota": "MOTA",
     "motp": "MOTP",
@@ -72,20 +67,19 @@ METRIC_LABELS = {
 
 @dataclass
 class ClipEvalResult:
-    """Per-clip evaluation result."""
+    """Per-clip evaluation result"""
 
     clip: str
     metrics: dict = field(default_factory=dict)
 
 
 def _load_motmetrics():
-    """Lazy-import motmetrics so non-eval code paths don't pay for it.
+    """Lazy-import motmetrics so non-eval code paths don't pay for it
 
     Also installs a NumPy 2.0 compatibility shim. py-motmetrics 1.4.0
-    uses ``np.asfarray``, which was removed in NumPy 2.0. We restore it
-    as an alias for ``np.asarray(..., dtype=float)`` -- the documented
-    replacement -- before importing motmetrics. This is harmless for
-    older NumPy and necessary for newer NumPy.
+    uses np.asfarray, which was removed in NumPy 2.0. We restore it
+    as an alias for np.asarray(..., dtype=float) before importing motmetrics. 
+    This is harmless for older NumPy and necessary for newer NumPy
     """
     import numpy as np
 
@@ -100,7 +94,7 @@ def _load_motmetrics():
 def _load_mot_dataframe(path: Path, is_gt: bool) -> "pandas.DataFrame":
     """Load a MOT-format file into the dataframe motmetrics expects.
 
-    We bypass ``mm.io.loadtxt`` because its pandas integration is
+    We bypass mm.io.loadtxt because its pandas integration is
     broken on pandas 3.0. The internal format motmetrics works with
     is straightforward (see issue #12 in the py-motmetrics repo):
 
@@ -108,10 +102,10 @@ def _load_mot_dataframe(path: Path, is_gt: bool) -> "pandas.DataFrame":
         index:   (FrameId, Id)
 
     Args:
-        path: file path to a 9- or 10-column MOT-format CSV.
+        path: file path to a 9- or 10-column MOT-format CSV
         is_gt: when True, drop rows whose 7th column ("consider") is 0.
             This is the SportsMOT/MOT16 convention for ignored
-            annotations. For prediction files we keep every row.
+            annotations. For prediction files we keep every row
     """
     import pandas as pd
 
@@ -124,7 +118,7 @@ def _load_mot_dataframe(path: Path, is_gt: bool) -> "pandas.DataFrame":
         skipinitialspace=True,
         comment="#",
         # MOT format has up to 10 columns; we read at most 9 because
-        # neither GT nor predictions use the world-z field meaningfully.
+        # neither GT nor predictions use the world-z field
         usecols=list(range(9)),
         names=[
             "FrameId",
@@ -137,20 +131,20 @@ def _load_mot_dataframe(path: Path, is_gt: bool) -> "pandas.DataFrame":
             "ClassId",
             "Visibility",
         ],
-        engine="python",  # avoid C engine quirks with mixed delimiters
+        engine="python",
     )
 
     if is_gt:
-        # Drop rows the dataset author marked "ignore".
+        # Drop rows the dataset author marked "ignore"
         raw = raw[raw["Confidence"] >= 1].copy()
 
-    # motmetrics expects (FrameId, Id) as a MultiIndex.
+    # motmetrics expects (FrameId, Id) as a MultiIndex
     df = raw.set_index(["FrameId", "Id"]).sort_index()
 
     # The 'Confidence' column means different things in GT vs predictions:
     # in GT it's the consider-flag (already filtered above), in predictions
     # it's a detection score. motmetrics doesn't actually use the value
-    # for anything except identifying the row, so this is fine.
+    # for anything except identifying the row, so this is fine
     return df[["X", "Y", "Width", "Height", "Confidence", "ClassId", "Visibility"]]
 
 
@@ -159,17 +153,17 @@ def evaluate_clip(
     pred_path: Path,
     iou_threshold: float = 0.5,
 ) -> dict:
-    """Compute MOT metrics for one clip.
+    """Compute MOT metrics for one clip
 
     Args:
-        gt_path: ground-truth file (e.g. ``gt/gt.txt`` from SportsMOT).
-        pred_path: predictions file from our tracker.
+        gt_path: ground-truth file (e.g. ``gt/gt.txt`` from SportsMOT)
+        pred_path: predictions file from our tracker
         iou_threshold: minimum IOU for a prediction to be considered a
             match against a ground-truth box. The MOT Challenge standard
-            is 0.5; we follow that.
+            is 0.5; we follow that
 
     Returns:
-        A dict mapping metric name (e.g. ``mota``) to its value.
+        A dict mapping metric name (e.g. ``mota``) to its value
     """
     mm = _load_motmetrics()
 
@@ -179,7 +173,7 @@ def evaluate_clip(
     # The accumulator walks frame by frame, matching predictions to GT
     # via the Hungarian algorithm on a 1 - IOU cost matrix, recording
     # all the events (matches, misses, switches) needed to compute the
-    # final summary metrics.
+    # final summary metrics
     acc = mm.utils.compare_to_groundtruth(gt, pred, "iou", distth=1.0 - iou_threshold)
 
     mh = mm.metrics.create()
@@ -188,7 +182,7 @@ def evaluate_clip(
         metrics=DEFAULT_METRICS,
         name="clip",
     )
-    # summary is a pandas DataFrame with one row. Convert to dict.
+    # summary is a pandas DataFrame with one row. Convert to dict
     return {k: summary[k].iloc[0] for k in DEFAULT_METRICS}
 
 
@@ -196,17 +190,15 @@ def evaluate_clips(
     pairs: Iterable[tuple[str, Path, Path]],
     iou_threshold: float = 0.5,
 ) -> tuple[List[ClipEvalResult], dict]:
-    """Evaluate multiple clips and produce both per-clip and combined metrics.
+    """Evaluate multiple clips and produce both per-clip and combined metrics
 
-    The combined metrics are NOT a simple average. They're computed by
-    accumulating events across all clips and computing the metrics on
-    the joint accumulator -- i.e. one "big virtual sequence" made by
-    concatenating all the clips. This matches the MOT Challenge
-    aggregation convention.
+    The combined metrics are computed by accumulating events across all clips 
+    and computing the metrics on the joint accumulator. This matches the 
+    MOT Challenge aggregation convention
 
     Args:
-        pairs: iterable of (clip_name, gt_path, pred_path).
-        iou_threshold: same as ``evaluate_clip``.
+        pairs: iterable of (clip_name, gt_path, pred_path)
+        iou_threshold: same as evaluate_clip
 
     Returns:
         (per_clip_results, combined_metrics)
@@ -244,7 +236,7 @@ def evaluate_clips(
         names=names,
         generate_overall=True,
     )
-    # The "OVERALL" row is the aggregated result we want for the report.
+    # The "OVERALL" row is the aggregated result we want for the report
     overall_row = combined_summary.loc["OVERALL"]
     combined = {k: overall_row[k] for k in DEFAULT_METRICS}
 
@@ -255,15 +247,15 @@ def format_summary_table(
     per_clip: List[ClipEvalResult],
     combined: Optional[dict] = None,
 ) -> str:
-    """Format evaluation results as a human-readable text table."""
+    """Format evaluation results as a human-readable text table"""
     metrics = DEFAULT_METRICS
 
-    # Column widths: 24 for clip name, then varies by metric.
+    # Column widths: 24 for clip name, then varies by metric
     name_w = max(24, max((len(c.clip) for c in per_clip), default=24))
     col_widths = {}
     for m in metrics:
         label = METRIC_LABELS.get(m, m)
-        # Width is max(label, longest formatted value).
+        # Width is max(label, longest formatted value)
         w = len(label)
         for c in per_clip:
             v = c.metrics[m]
@@ -272,7 +264,7 @@ def format_summary_table(
             w = max(w, len(_fmt_value(m, combined[m])))
         col_widths[m] = max(w, 6)
 
-    # Header.
+    # Header
     lines = []
     header = f"{'clip':<{name_w}}  " + "  ".join(
         f"{METRIC_LABELS.get(m, m):>{col_widths[m]}}" for m in metrics
@@ -303,7 +295,7 @@ def _fmt_value(metric: str, value) -> str:
     """
     if value is None:
         return "-"
-    # Detect whether to format as int (counts) or float (rates).
+    # Detect whether to format as int (counts) or float (rates)
     int_metrics = {
         "num_frames",
         "mostly_tracked",

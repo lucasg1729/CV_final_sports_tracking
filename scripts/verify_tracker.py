@@ -1,4 +1,4 @@
-"""Run the tracker class checks without needing pytest."""
+"""Run the tracker class checks without needing pytest"""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ check(
     f"got {out3}",
 )
 
-# Stable IDs.
+# Stable IDs
 tr = Tracker(min_hits=3, max_age=30)
 ids_seen = []
 for t in range(10):
@@ -107,7 +107,7 @@ out_before = tr.step(np.array([box(125, 100)]))
 check("track established before occlusion", len(out_before) == 1)
 id_before = out_before[0].id
 
-# 3 frames of occlusion.
+# 3 frames of occlusion
 all_kept_id = True
 for _ in range(3):
     out = tr.step(np.empty((0, 4)))
@@ -115,7 +115,7 @@ for _ in range(3):
         all_kept_id = False
 check("ID preserved during 3-frame occlusion", all_kept_id)
 
-# Reappear.
+# Reappear
 out_after = tr.step(np.array([box(150, 100)]))
 check(
     "ID matches across occlusion",
@@ -123,7 +123,7 @@ check(
     f"id_before={id_before}, after={out_after}",
 )
 
-# Track deleted after max_age.
+# Track deleted after max_age
 tr = Tracker(min_hits=3, max_age=5)
 for t in range(5):
     tr.step(np.array([box(100, 100)]))
@@ -132,7 +132,7 @@ for _ in range(tr.max_age + 2):
     tr.step(np.empty((0, 4)))
 check("track deleted after max_age + 2 misses", len(tr.tracks) == 0)
 
-# New ID on reappearance after deletion.
+# New ID on reappearance after deletion
 new_id = None
 for t in range(5):
     out = tr.step(np.array([box(100, 100)]))

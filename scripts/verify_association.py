@@ -1,8 +1,4 @@
-"""Run the association module checks without needing pytest.
-
-A standalone smoke test for the association module. The full pytest
-suite lives in tests/test_association.py.
-"""
+"""Run the association module checks without needing pytest"""
 
 from __future__ import annotations
 
@@ -95,7 +91,7 @@ print()
 print("Association via Hungarian")
 print("-" * 60)
 
-# Perfect match.
+# Perfect match
 boxes = np.array(
     [[0.0, 0.0, 10.0, 10.0], [50.0, 50.0, 60.0, 60.0], [100.0, 0.0, 110.0, 10.0]]
 )
@@ -105,7 +101,7 @@ check("perfect match: no unmatched tracks", len(result.unmatched_tracks) == 0)
 check("perfect match: no unmatched detections", len(result.unmatched_detections) == 0)
 check("perfect match: identity assignment", dict(result.matches) == {0: 0, 1: 1, 2: 2})
 
-# Disjoint.
+# Disjoint
 tracks = np.array([[0.0, 0.0, 10.0, 10.0]])
 dets = np.array([[100.0, 100.0, 110.0, 110.0]])
 result = associate(tracks, dets)
@@ -113,14 +109,14 @@ check("disjoint boxes: no matches", len(result.matches) == 0)
 check("disjoint boxes: track unmatched", list(result.unmatched_tracks) == [0])
 check("disjoint boxes: det unmatched", list(result.unmatched_detections) == [0])
 
-# Empty inputs.
+# Empty inputs
 result = associate(np.empty((0, 4)), boxes)
 check("empty tracks: all dets unmatched", list(result.unmatched_detections) == [0, 1, 2])
 
 result = associate(boxes, np.empty((0, 4)))
 check("empty dets: all tracks unmatched", list(result.unmatched_tracks) == [0, 1, 2])
 
-# Gating.
+# Gating
 tracks = np.array([[0.0, 0.0, 10.0, 10.0]])
 dets = np.array([[8.0, 8.0, 18.0, 18.0]])
 overlap = iou(tracks[0], dets[0])
@@ -137,7 +133,7 @@ check(
     and list(result.unmatched_detections) == [0],
 )
 
-# Two tracks competing for one detection.
+# Two tracks competing for one detection
 tracks = np.array(
     [[0.0, 0.0, 10.0, 10.0], [20.0, 20.0, 30.0, 30.0]]
 )
@@ -152,7 +148,7 @@ check(
     list(result.unmatched_tracks) == [0],
 )
 
-# Crossing paths.
+# Crossing paths
 tracks = np.array(
     [[25.0, 0.0, 35.0, 20.0], [5.0, 0.0, 15.0, 20.0]]
 )
@@ -166,7 +162,7 @@ check(
     f"got {dict(result.matches)}",
 )
 
-# Realistic frame: one persists, one disappears, one is new.
+# One persists, one disappears, one is new
 tracks = np.array(
     [[0.0, 0.0, 10.0, 10.0], [50.0, 50.0, 60.0, 60.0]]
 )
@@ -181,7 +177,7 @@ check(
     and list(result.unmatched_detections) == [1],
 )
 
-# Tunable threshold.
+# Tunable threshold
 tracks = np.array([[0.0, 0.0, 10.0, 10.0]])
 dets = np.array([[5.0, 5.0, 15.0, 15.0]])
 overlap = iou(tracks[0], dets[0])

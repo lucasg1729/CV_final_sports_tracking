@@ -1,8 +1,4 @@
-"""Run the Kalman filter unit tests without needing pytest.
-
-This is a one-off verification script. The real test suite lives in
-tests/test_kalman.py and runs via pytest in your local environment.
-"""
+"""Run the Kalman filter unit tests without needing pytest"""
 
 from __future__ import annotations
 
@@ -69,7 +65,7 @@ check(
     f"moved to {predicted}",
 )
 
-# Constant velocity learning test.
+# Constant velocity learning test
 vx, vy = 10.0, 5.0
 boxes = []
 for t in range(20):
@@ -93,7 +89,7 @@ check(
     f"expected ~{vy}, got {kf.x[5]:.3f}",
 )
 
-# Occlusion extrapolation test.
+# Occlusion extrapolation test
 boxes_occ = [
     np.array([100.0 + vx * t, 200.0, 150.0 + vx * t, 300.0]) for t in range(15)
 ]
@@ -123,7 +119,7 @@ check(
     f"got {kf.hit_streak}",
 )
 
-# Covariance shrinks after update.
+# Covariance shrinks after update
 bbox = np.array([100.0, 200.0, 200.0, 400.0])
 kf = BoxKalmanFilter(bbox)
 p_before = kf.P[0, 0] + kf.P[1, 1]
@@ -136,7 +132,7 @@ check(
     f"before {p_before:.3f}, after {p_after:.3f}",
 )
 
-# Bookkeeping counters.
+# Bookkeeping counters
 bbox = np.array([100.0, 200.0, 200.0, 400.0])
 kf = BoxKalmanFilter(bbox)
 check("init hits", kf.hits == 1)

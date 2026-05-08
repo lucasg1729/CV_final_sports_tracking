@@ -9,9 +9,6 @@ Run this after downloading and extracting SportsMOT. It checks that:
       seqinfo.ini  metadata (frame rate, resolution, length)
   - The frame count in seqinfo.ini matches the number of JPGs on disk
 
-Exits with a nonzero code if anything is wrong, so you can wire this
-into CI or a setup script if you want.
-
 Usage:
     python scripts/verify_data.py
     python scripts/verify_data.py --split train
@@ -25,7 +22,7 @@ import configparser
 import sys
 from pathlib import Path
 
-# Make the package importable when running this script directly.
+# Make the package importable when running this script directly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sports_tracker.config import load_config, resolve_path
@@ -39,7 +36,7 @@ def parse_seqinfo(path: Path) -> dict[str, str]:
     """
     parser = configparser.ConfigParser()
     # By default ConfigParser lower-cases all keys, but SportsMOT uses
-    # camelCase (seqLength, imDir, imWidth, ...). Preserve case.
+    # camelCase (seqLength, imDir, imWidth, ...). Preserves case
     parser.optionxform = str
     parser.read(path)
     if "Sequence" not in parser:
@@ -56,7 +53,7 @@ def check_clip(clip_dir: Path, expect_gt: bool) -> tuple[bool, list[str], dict]:
     errors: list[str] = []
     info: dict = {"name": clip_dir.name}
 
-    # seqinfo.ini -- the entry point for everything else.
+    # seqinfo.ini is the entry point for everything else
     seqinfo_path = clip_dir / "seqinfo.ini"
     if not seqinfo_path.exists():
         errors.append("missing seqinfo.ini")
@@ -70,7 +67,7 @@ def check_clip(clip_dir: Path, expect_gt: bool) -> tuple[bool, list[str], dict]:
 
     info.update(meta)
 
-    # img1/ should exist and contain JPGs.
+    # img1/ should exist and contain JPGs
     img_dir = clip_dir / meta.get("imDir", "img1")
     if not img_dir.is_dir():
         errors.append(f"missing image directory {img_dir.name}/")
@@ -79,7 +76,7 @@ def check_clip(clip_dir: Path, expect_gt: bool) -> tuple[bool, list[str], dict]:
         frames = sorted(img_dir.glob(f"*{ext}"))
         info["frames_on_disk"] = len(frames)
 
-        # Cross-check against the declared seqLength.
+        # Cross-check against the declared seqLength
         try:
             declared = int(meta.get("seqLength", "0"))
             if declared != len(frames):
@@ -89,11 +86,11 @@ def check_clip(clip_dir: Path, expect_gt: bool) -> tuple[bool, list[str], dict]:
         except ValueError:
             errors.append(f"seqLength is not an integer: {meta.get('seqLength')!r}")
 
-        # First frame is conventionally 000001.{ext}.
+        # First frame is conventionally 000001.{ext}
         if frames and frames[0].name != f"000001{ext}":
             errors.append(f"first frame is {frames[0].name}, expected 000001{ext}")
 
-    # gt/gt.txt -- only present in train and val splits, not test.
+    # gt/gt.txt should only be present in train and val splits, not test
     gt_path = clip_dir / "gt" / "gt.txt"
     if expect_gt:
         if not gt_path.exists():

@@ -1,4 +1,4 @@
-"""Compare multiple tracker configurations side-by-side as a bar chart.
+"""Compare multiple tracker configurations side-by-side as a bar chart
 
 Reads the OVERALL row from each summary.csv under results/<tag>/ and
 plots one bar per (tag, metric) combination as a multi-panel figure
@@ -30,12 +30,12 @@ from sports_tracker.config import REPO_ROOT
 
 
 # Metrics where higher = better. Anything not in this set is treated
-# as lower = better (FP, FN, IDs, Frag, ML).
+# as lower = better so (FP, FN, IDs, Frag, ML)
 HIGHER_IS_BETTER = {"MOTA", "MOTP", "IDF1", "IDP", "IDR", "MT"}
 
 
 def load_overall_row(csv_path: Path) -> dict[str, float]:
-    """Return the OVERALL row of a summary CSV as a metric dict."""
+    """Return the OVERALL row of a summary CSV as a metric dict"""
     with open(csv_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -105,7 +105,6 @@ def main() -> int:
         Path(args.results_dir) if args.results_dir else REPO_ROOT / "results"
     )
 
-    # Load each tag's metrics.
     rows = []  # list of (label, metrics_dict)
     for tag, label in zip(args.tags, labels):
         csv_path = results_dir / tag / "summary.csv"
@@ -123,7 +122,7 @@ def main() -> int:
         print("No data; nothing to plot.")
         return 1
 
-    # Layout: square grid of subplots, one per metric.
+    # square grid of subplots, one per metric
     n_metrics = len(args.metrics)
     n_cols = min(n_metrics, 2)
     n_rows = (n_metrics + n_cols - 1) // n_cols
@@ -135,8 +134,8 @@ def main() -> int:
     bar_labels = [r[0] for r in rows]
     x_positions = list(range(len(bar_labels)))
 
-    # Color palette: use a single base color per panel, with the "best"
-    # bar highlighted in a darker/saturated shade.
+    # Use a single base color per panel, with the best bar highlighted 
+    # in a darker shade
     base_color = "#7aa6d6"
     best_color = "#1f5fa3"
 
@@ -157,7 +156,7 @@ def main() -> int:
         colors = [best_color if i == best_idx else base_color for i in range(len(values))]
         bars = ax.bar(x_positions, values, color=colors, edgecolor="white", linewidth=1.0)
 
-        # Annotate each bar with its value above it.
+        # Annotate each bar with its value above it
         for bar, v in zip(bars, values):
             offset = (max(values) - min(values)) * 0.02 if max(values) != min(values) else 0.01
             ax.text(
@@ -175,12 +174,12 @@ def main() -> int:
         )
         ax.grid(True, axis="y", alpha=0.3)
 
-        # Pad y-axis so annotations don't get cropped.
+        # Pad y-axis so annotations don't get cropped
         ymin = min(0, min(values) * 1.1) if min(values) < 0 else 0
         ymax = max(values) * 1.18 if max(values) > 0 else max(values) * 0.85
         ax.set_ylim(ymin, ymax)
 
-    # Hide any unused subplot cells.
+    # Hide any unused subplot cells
     for j in range(n_metrics, n_rows * n_cols):
         axes[j // n_cols][j % n_cols].set_axis_off()
 
